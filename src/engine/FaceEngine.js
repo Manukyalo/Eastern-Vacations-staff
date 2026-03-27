@@ -41,6 +41,7 @@ class FaceEngine {
   /**
    * Registers a face by capturing multiple frames and averaging descriptors
    */
+  async registerFace(videoElement, driverEmail) {
     const descriptors = [];
     const maxFrames = 3;
     let framesCaptured = 0;
