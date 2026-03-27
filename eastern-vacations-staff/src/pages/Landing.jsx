@@ -23,8 +23,10 @@ const Landing = () => {
           <div className="w-20 h-20 bg-accent-gold rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(201,168,76,0.2)] mx-auto rotate-3 hover:rotate-0 transition-transform duration-500">
             <ShieldCheck size={40} className="text-primary-dark" />
           </div>
-          <h1 className="text-4xl font-heading font-black tracking-tight mb-2 text-white">
-            Eastern <span className="text-accent-gold">Vacations</span>
+          <h1 className="text-5xl font-heading font-black text-white uppercase tracking-tighter leading-none">
+            EASTERN <span className="text-accent-gold">VACATIONS</span>
+            <br />
+            <span className="text-3xl text-white/40">STAFF COMMAND</span>
           </h1>
           <p className="text-text-muted font-medium tracking-[0.2em] uppercase text-xs">
             Field Operations Portal
