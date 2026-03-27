@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
 import { Camera, RefreshCw, ShieldCheck, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
