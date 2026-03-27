@@ -25,13 +25,10 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
       await FaceEngine.init();
       setModelsReady(true);
 
-      // 2. Start camera with stabilized constraints for mobile
+      // 2. Start camera with standard constraints
       const constraints = {
         video: {
-          facingMode: 'user',
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          frameRate: { ideal: 15, max: 30 }
+          facingMode: 'user'
         }
       };
       
@@ -40,7 +37,9 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-      setStatus('ready');
+      
+      // Delay setting ready to ensure video is pumping frames
+      setTimeout(() => setStatus('ready'), 1000);
     } catch (error) {
       console.error('FaceScanner Initialization failed:', error);
       toast.error('Initialization failed. Check camera permissions.');

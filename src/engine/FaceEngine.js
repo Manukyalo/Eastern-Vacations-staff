@@ -42,12 +42,8 @@ class FaceEngine {
    * Registers a face by capturing multiple frames and averaging descriptors
    */
   async registerFace(videoElement, driverEmail) {
-    await this.init();
-
     const descriptors = [];
-    const requiredConsecutive = 3; // Number of consecutive frames required
-    let consecutiveCount = 0;
-    const maxFrames = 5; // Total averaged frames for final descriptor
+    const maxFrames = 3;
     let framesCaptured = 0;
     let isProcessing = false;
 
@@ -63,39 +59,29 @@ class FaceEngine {
             .withFaceDescriptor();
 
           if (detection) {
-            consecutiveCount++;
-            
-            if (consecutiveCount >= requiredConsecutive) {
-              descriptors.push(detection.descriptor);
-              framesCaptured++;
-              console.log(`FaceEngine: Captured stable frame ${framesCaptured}/${maxFrames}`);
+            descriptors.push(detection.descriptor);
+            framesCaptured++;
 
-              if (framesCaptured === maxFrames) {
-                clearInterval(interval);
-                
-                // Average descriptors for better accuracy
-                const averageDescriptor = this.calculateAverageDescriptor(descriptors);
-                
-                // Capture the best frame as Base64 for storage (saves cost)
-                const canvas = faceapi.createCanvasFromMedia(videoElement);
-                const base64Image = canvas.toDataURL('image/jpeg', 0.7); 
-                
-                resolve({
-                  descriptor: Array.from(averageDescriptor),
-                  imageBlob: base64Image 
-                });
-              }
+            if (framesCaptured >= maxFrames) {
+              clearInterval(interval);
+              
+              const averageDescriptor = this.calculateAverageDescriptor(descriptors);
+              const canvas = faceapi.createCanvasFromMedia(videoElement);
+              const base64Image = canvas.toDataURL('image/jpeg', 0.6); 
+              
+              resolve({
+                descriptor: Array.from(averageDescriptor),
+                imageBlob: base64Image 
+              });
             }
-          } else {
-            consecutiveCount = 0; // Reset if frame is bad
           }
         } catch (error) {
-          clearInterval(interval);
-          reject(error);
+          console.error("Detection error:", error);
+          // Don't reject immediately, keep trying unless it's fatal
         } finally {
           isProcessing = false;
         }
-      }, 200); // Throttled to 200ms for stability
+      }, 600);
     });
   }
 
