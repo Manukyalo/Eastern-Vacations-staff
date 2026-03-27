@@ -29,18 +29,20 @@ const SafariRegister = () => {
 
     setIsVerifying(true);
     try {
+      const cleanEmail = formData.email.trim().toLowerCase();
       const driversRef = collection(db, 'drivers');
-      const q = query(driversRef, where('email', '==', formData.email));
+      const q = query(driversRef, where('email', '==', cleanEmail));
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
         setIsVerifying(false);
-        return toast.error("Safari driver details not found. Contact office.");
+        return toast.error("Safari driver details not found for: " + cleanEmail + ". Contact office.");
       }
 
       setStep(2);
     } catch (error) {
-      toast.error("Verification failed");
+      console.error("Verification error:", error);
+      toast.error("Verification failed: " + (error.code || error.message));
     } finally {
       setIsVerifying(false);
     }

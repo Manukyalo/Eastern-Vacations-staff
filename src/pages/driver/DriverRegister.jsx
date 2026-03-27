@@ -30,18 +30,18 @@ const DriverRegister = () => {
     setIsVerifying(true);
     try {
       // Query Firestore drivers collection to verify existence
+      const cleanEmail = formData.email.trim().toLowerCase();
       const driversRef = collection(db, 'drivers');
       const q = query(
         driversRef, 
-        where('email', '==', formData.email),
-        // where('phone', '==', formData.phone) // Simplified for first pass, usually both
+        where('email', '==', cleanEmail),
       );
       
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
         setIsVerifying(false);
-        return toast.error("Your details were not found in our system. Contact admin first.");
+        return toast.error("Details not found for " + cleanEmail + ". Contact admin.");
       }
 
       const driverDoc = querySnapshot.docs[0];
@@ -51,7 +51,7 @@ const DriverRegister = () => {
       setStep(2);
     } catch (error) {
       console.error("Verification error:", error);
-      toast.error("An error occurred during verification");
+      toast.error("Verification error: " + (error.code || error.message));
     } finally {
       setIsVerifying(false);
     }
