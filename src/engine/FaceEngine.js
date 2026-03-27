@@ -41,55 +41,54 @@ class FaceEngine {
   /**
    * Registers a face by capturing multiple frames and averaging descriptors
    */
-  async registerFace(videoElement, driverEmail) {
     const descriptors = [];
     const maxFrames = 3;
     let framesCaptured = 0;
-    let isProcessing = false;
+    this.isScanning = true;
 
-    return new Promise((resolve, reject) => {
-      const interval = setInterval(async () => {
-        if (isProcessing) return;
-        isProcessing = true;
+    // Use a controlled loop instead of setInterval to prevent WebGL race conditions
+    while (this.isScanning && framesCaptured < maxFrames) {
+      // 1. Hardware Guard: Ensure video is actually streaming
+      if (videoElement.readyState !== 4) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        continue;
+      }
 
-        try {
-          const detection = await faceapi
-            .detectSingleFace(
-              videoElement, 
-              new faceapi.TinyFaceDetectorOptions({
-                inputSize: 224,
-                scoreThreshold: 0.5
-              })
-            )
-            .withFaceLandmarks()
-            .withFaceDescriptor();
+      try {
+        // 2. Detection Phase: Use standard TinyFaceDetector settings
+        const detection = await faceapi
+          .detectSingleFace(
+            videoElement, 
+            new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })
+          )
+          .withFaceLandmarks()
+          .withFaceDescriptor();
 
-          if (detection) {
-            descriptors.push(detection.descriptor);
-            framesCaptured++;
-
-            if (framesCaptured >= maxFrames) {
-              clearInterval(interval);
-              
-              const averageDescriptor = this.calculateAverageDescriptor(descriptors);
-              const canvas = faceapi.createCanvasFromMedia(videoElement);
-              const base64Image = canvas.toDataURL('image/jpeg', 0.6); 
-              
-              resolve({
-                descriptor: Array.from(averageDescriptor),
-                imageBlob: base64Image 
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Detection error:", error);
-          // Don't reject immediately, keep trying unless it's fatal
-        } finally {
-          isProcessing = false;
+        if (detection) {
+          descriptors.push(detection.descriptor);
+          framesCaptured++;
         }
-      }, 600);
-    });
-  }
+      } catch (error) {
+        console.error("Bulletproof Detection Error:", error);
+      }
+
+      // 3. Throttle: Give the mobile GPU time to breathe between tensors
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
+    if (framesCaptured >= maxFrames) {
+      this.isScanning = false;
+      const averageDescriptor = this.calculateAverageDescriptor(descriptors);
+      const canvas = faceapi.createCanvasFromMedia(videoElement);
+      const base64Image = canvas.toDataURL('image/jpeg', 0.6);
+      
+      return {
+        descriptor: Array.from(averageDescriptor),
+        imageBlob: base64Image
+      };
+    } else {
+      throw new Error("Face capture timed out or interrupted.");
+    }
 
   /**
    * Verifies a live face against a stored descriptor
