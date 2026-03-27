@@ -2,10 +2,10 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDriver } from '../../context/DriverContext';
 import { useLocation } from '../../context/LocationContext';
-import { Bell, Map as MapIcon, Compass, Anchor, ChevronRight, Zap } from 'lucide-react';
+import { Bell, Map as MapIcon, Compass, Anchor, ChevronRight, Zap, MapPin } from 'lucide-react';
 import StatusBadge from '../../components/ui/StatusBadge';
 import SOSButton from '../../components/ui/SOSButton';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 const SafariDashboard = () => {
@@ -14,7 +14,12 @@ const SafariDashboard = () => {
   const { currentLocation, isTracking } = useLocation();
 
   const today = new Date();
-  const todaysSafari = activeBookings.find(b => format(new Date(b.date), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'));
+  const todaysSafari = activeBookings.find(b => {
+    if (!b.date) return false;
+    const bookingDate = new Date(b.date);
+    if (!isValid(bookingDate)) return false;
+    return format(bookingDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+  });
 
   return (
     <div className="p-6 pt-12 space-y-8 animate-in fade-in duration-700 bg-primary-dark">

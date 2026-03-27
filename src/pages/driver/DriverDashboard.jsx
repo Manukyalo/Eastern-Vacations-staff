@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useDriver } from '../../context/DriverContext';
 import { Bell, MapPin, Calendar, Clock, ChevronRight, User } from 'lucide-react';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 const DriverDashboard = () => {
   const navigate = useNavigate();
@@ -12,7 +12,12 @@ const DriverDashboard = () => {
   const { activeBookings, stats } = useDriver();
 
   const today = new Date();
-  const todaysTrip = activeBookings.find(b => format(new Date(b.date), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'));
+  const todaysTrip = activeBookings.find(b => {
+    if (!b.date) return false;
+    const bookingDate = new Date(b.date);
+    if (!isValid(bookingDate)) return false;
+    return format(bookingDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+  });
 
   return (
     <div className="p-6 pt-12 space-y-8 animate-in fade-in duration-700">
