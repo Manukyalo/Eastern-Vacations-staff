@@ -12,17 +12,34 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
   // 1. Load models first
   useEffect(() => {
     const loadModels = async () => {
+      const LOCAL_MODEL_URL = '/models';
+      const CDN_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+
       try {
         setStatus('loading-models');
-        await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-        await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
-        await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
-        console.log('Models loaded successfully');
+        console.log('FaceScanner: Attempting local model load...');
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(LOCAL_MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(LOCAL_MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(LOCAL_MODEL_URL)
+        ]);
+        console.log('FaceScanner: Local models loaded');
         startCamera();
-      } catch (err) {
-        console.error('Model loading failed:', err);
-        setErrorMessage('Failed to load Face ID models. Check your connection.');
-        setStatus('error');
+      } catch (localError) {
+        console.warn('FaceScanner: Local models failed, trying CDN...', localError);
+        try {
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(CDN_MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(CDN_MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(CDN_MODEL_URL)
+          ]);
+          console.log('FaceScanner: CDN models loaded');
+          startCamera();
+        } catch (cdnError) {
+          console.error('FaceScanner: All model loading failed', cdnError);
+          setErrorMessage('Failed to load Face ID models. Check your connection.');
+          setStatus('error');
+        }
       }
     };
     loadModels();

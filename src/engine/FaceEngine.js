@@ -11,22 +11,33 @@ class FaceEngine {
     if (this.loadingPromise) return this.loadingPromise;
 
     this.loadingPromise = (async () => {
-      try {
-        console.log('FaceEngine: Loading models from /models...');
-        
-        // Load from root /models path as per new organization
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-          faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-        ]);
+      const LOCAL_MODEL_URL = '/models';
+      const CDN_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
 
+      try {
+        console.log('FaceEngine: Attempting to load models from local /models...');
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(LOCAL_MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(LOCAL_MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(LOCAL_MODEL_URL)
+        ]);
         this.modelsLoaded = true;
-        console.log('FaceEngine: Models loaded successfully');
-      } catch (error) {
-        console.error('FaceEngine: Failed to load models', error);
-        throw error;
-        this.loadingPromise = null; // Reset on failure
+        console.log('FaceEngine: Local models loaded successfully');
+      } catch (localError) {
+        console.warn('FaceEngine: Local models failed to load, trying CDN fallback...', localError);
+        try {
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(CDN_MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(CDN_MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(CDN_MODEL_URL)
+          ]);
+          this.modelsLoaded = true;
+          console.log('FaceEngine: CDN models loaded successfully');
+        } catch (cdnError) {
+          console.error('FaceEngine: All model loading attempts failed', cdnError);
+          this.loadingPromise = null;
+          throw new Error('Failed to load Face ID models. Check your connection.');
+        }
       }
     })();
 
