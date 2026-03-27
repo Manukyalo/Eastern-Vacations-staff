@@ -192,13 +192,9 @@ function App() {
     <AuthProvider>
       <DriverProvider>
         <LocationProvider>
-          <div style={{color: 'white', padding: '50px'}}>
-            <h1>SYSTEM LIVE - PROVIDERS LOADED</h1>
-            <p>If you see this, providers are fine. Testing Router next...</p>
-          </div>
-          {/* <Router>
+          <Router>
             <AppContent />
-          </Router> */}
+          </Router>
         </LocationProvider>
       </DriverProvider>
     </AuthProvider>
