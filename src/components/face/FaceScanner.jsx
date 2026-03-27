@@ -10,6 +10,7 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
   const [status, setStatus] = useState('initializing'); // initializing, ready, scanning, success, error
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [modelsReady, setModelsReady] = useState(false);
 
   const stopCamera = useCallback(() => {
     if (stream) {
@@ -19,29 +20,36 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
 
   const startCamera = useCallback(async () => {
     try {
+      // 1. Ensure models are loaded first
+      setStatus('initializing');
+      await FaceEngine.init();
+      setModelsReady(true);
+
+      // 2. Start camera with stabilized constraints for mobile
       const constraints = {
         video: {
           facingMode: 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 15, max: 30 }
         }
       };
+      
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-      setStatus('ready'); // Set status to ready after camera starts successfully
+      setStatus('ready');
     } catch (error) {
-      console.error('Camera access failed:', error);
-      toast.error('Unable to access camera. Please check permissions.');
-      setStatus('error'); // Set status to error if camera access fails
-      setErrorMessage('Camera access denied. Please enable permissions.'); // Keep errorMessage for display
+      console.error('FaceScanner Initialization failed:', error);
+      toast.error('Initialization failed. Check camera permissions.');
+      setStatus('error');
+      setErrorMessage(error.message || 'Camera access denied.');
     }
-  }, []); // No dependencies as videoRef.current is a ref and doesn't trigger re-renders
+  }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     startCamera();
     return () => stopCamera();
   }, [startCamera, stopCamera]);
@@ -94,9 +102,17 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
       </div>
 
       {/* Overlay Feedback */}
-      <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 pointer-events-none">
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        {status === 'initializing' && (
+          <div className="flex flex-col items-center bg-black/40 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl">
+            <RefreshCw className="text-accent-gold animate-spin mb-4" size={32} />
+            <p className="text-white font-bold tracking-tight">Preparing Face ID...</p>
+            <p className="text-white/40 text-[10px] mt-2 uppercase tracking-[0.2em]">Optimizing Engine</p>
+          </div>
+        )}
+
         {status === 'ready' && (
-          <p className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium animate-pulse">
+          <p className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium animate-pulse absolute bottom-12">
             Position face in oval
           </p>
         )}

@@ -45,43 +45,57 @@ class FaceEngine {
     await this.init();
 
     const descriptors = [];
-    const maxFrames = 5;
+    const requiredConsecutive = 3; // Number of consecutive frames required
+    let consecutiveCount = 0;
+    const maxFrames = 5; // Total averaged frames for final descriptor
     let framesCaptured = 0;
+    let isProcessing = false;
 
     return new Promise((resolve, reject) => {
       const interval = setInterval(async () => {
+        if (isProcessing) return;
+        isProcessing = true;
+
         try {
           const detection = await faceapi
-            .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
+            .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.7 }))
             .withFaceLandmarks()
             .withFaceDescriptor();
 
           if (detection) {
-            descriptors.push(detection.descriptor);
-            framesCaptured++;
-            console.log(`FaceEngine: Captured frame ${framesCaptured}/${maxFrames}`);
+            consecutiveCount++;
+            
+            if (consecutiveCount >= requiredConsecutive) {
+              descriptors.push(detection.descriptor);
+              framesCaptured++;
+              console.log(`FaceEngine: Captured stable frame ${framesCaptured}/${maxFrames}`);
 
-            if (framesCaptured === maxFrames) {
-              clearInterval(interval);
-              
-              // Average descriptors for better accuracy
-              const averageDescriptor = this.calculateAverageDescriptor(descriptors);
-              
-              // Capture the best frame as Base64 for storage (saves cost)
-              const canvas = faceapi.createCanvasFromMedia(videoElement);
-              const base64Image = canvas.toDataURL('image/jpeg', 0.7); // 0.7 quality for size optimization
-              
-              resolve({
-                descriptor: Array.from(averageDescriptor),
-                imageBlob: base64Image // Keeping the key name the same to minimize changes elsewhere
-              });
+              if (framesCaptured === maxFrames) {
+                clearInterval(interval);
+                
+                // Average descriptors for better accuracy
+                const averageDescriptor = this.calculateAverageDescriptor(descriptors);
+                
+                // Capture the best frame as Base64 for storage (saves cost)
+                const canvas = faceapi.createCanvasFromMedia(videoElement);
+                const base64Image = canvas.toDataURL('image/jpeg', 0.7); 
+                
+                resolve({
+                  descriptor: Array.from(averageDescriptor),
+                  imageBlob: base64Image 
+                });
+              }
             }
+          } else {
+            consecutiveCount = 0; // Reset if frame is bad
           }
         } catch (error) {
           clearInterval(interval);
           reject(error);
+        } finally {
+          isProcessing = false;
         }
-      }, 500);
+      }, 200); // Throttled to 200ms for stability
     });
   }
 
