@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 
 const SafariDashboard = () => {
   const navigate = useNavigate();
-  const { driverProfile } = useAuth();
   const { activeBookings } = useDriver();
   const { currentLocation, isTracking } = useLocation();
 

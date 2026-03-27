@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { Mail, Lock, LogIn, ArrowRight, ShieldCheck, UserPlus } from 'lucide-react';
@@ -10,7 +10,7 @@ const DriverLogin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1: Credentials, 2: Face (handled by FaceVerifier later)
+ // 1: Credentials, 2: Face (handled by FaceVerifier later)
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

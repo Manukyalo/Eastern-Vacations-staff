@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
-import FaceEngine from '../../engine/FaceEngine';
-import { Camera, RefreshCcw, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as faceapi from 'face-api.js';
+import { Camera, RefreshCw, ShieldCheck, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
   const videoRef = useRef(null);
@@ -9,34 +10,40 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, []);
-
-  const startCamera = async () => {
-    try {
-      const constraints = {
-        video: { facingMode: mode === 'register' ? 'user' : 'user' }
-      };
-      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-      setStream(newStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = newStream;
-      }
-      setStatus('ready');
-    } catch (err) {
-      console.error('Camera access denied:', err);
-      setStatus('error');
-      setErrorMessage('Camera access denied. Please enable permissions.');
-    }
-  };
-
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
     }
-  };
+  }, [stream]);
+
+  const startCamera = useCallback(async () => {
+    try {
+      const constraints = {
+        video: {
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+      setStatus('ready'); // Set status to ready after camera starts successfully
+    } catch (error) {
+      console.error('Camera access failed:', error);
+      toast.error('Unable to access camera. Please check permissions.');
+      setStatus('error'); // Set status to error if camera access fails
+      setErrorMessage('Camera access denied. Please enable permissions.'); // Keep errorMessage for display
+    }
+  }, []); // No dependencies as videoRef.current is a ref and doesn't trigger re-renders
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    startCamera();
+    return () => stopCamera();
+  }, [startCamera, stopCamera]);
 
   const handleScan = async () => {
     if (status !== 'ready') return;

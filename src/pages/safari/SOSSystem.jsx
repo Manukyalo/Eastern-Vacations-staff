@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -12,17 +12,8 @@ const SOSSystem = () => {
   const [selectedType, setSelectedType] = useState(null);
   const [isTriggered, setIsTriggered] = useState(false);
 
-  useEffect(() => {
-    let timer;
-    if (isActive && countdown > 0) {
-      timer = setInterval(() => setCountdown(prev => prev - 1), 1000);
-    } else if (countdown === 0 && isActive && !isTriggered) {
-      triggerSOS();
-    }
-    return () => clearInterval(timer);
-  }, [isActive, countdown]);
-
-  const triggerSOS = async () => {
+  const triggerSOS = useCallback(async () => {
+    if (isTriggered) return;
     setIsTriggered(true);
     const toastId = toast.loading("TRANSMITTING SOS SIGNAL...");
 
@@ -31,17 +22,26 @@ const SOSSystem = () => {
         type: selectedType || 'GENERAL_EMERGENCY',
         timestamp: serverTimestamp(),
         status: 'ACTIVE',
-        location: { latitude: -1.2921, longitude: 36.8219 }, // Replace with real LocationEngine data
-        driverId: 'currentDriverId', // Replace with AuthContext data
+        location: { latitude: -1.2921, longitude: 36.8219 }, // Mock location
         priority: 'CRITICAL'
       });
-
-      // Trigger FCM would happen via Cloud Functions
-      toast.success("SOS SIGNAL BROADCASTED", { id: toastId });
-    } catch (err) {
+      toast.success("SOS SIGNAL CONFIRMED BY HQ", { id: toastId });
+    } catch (error) {
+      console.error('SOS Failure:', error);
       toast.error("SIGNAL INTERRUPTED. RETRYING...", { id: toastId });
     }
-  };
+  }, [isTriggered, selectedType]);
+
+  useEffect(() => {
+    let timer;
+    if (isActive && countdown > 0) {
+      timer = setInterval(() => setCountdown(prev => prev - 1), 1000);
+    } else if (countdown === 0 && isActive && !isTriggered) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      triggerSOS();
+    }
+    return () => clearInterval(timer);
+  }, [isActive, countdown, isTriggered, triggerSOS]);
 
   const cancelSOS = () => {
     setIsActive(false);

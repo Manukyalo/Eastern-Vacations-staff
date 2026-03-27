@@ -1,11 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 
 const DriverContext = createContext();
-
-export const useDriver = () => useContext(DriverContext);
 
 export const DriverProvider = ({ children }) => {
   const { currentUser, role } = useAuth();
@@ -73,3 +72,5 @@ export const DriverProvider = ({ children }) => {
     </DriverContext.Provider>
   );
 };
+
+export const useDriver = () => useContext(DriverContext);

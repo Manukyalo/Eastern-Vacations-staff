@@ -19,8 +19,9 @@ const Profile = () => {
       await signOut(auth);
       toast.success("Signed out successfully");
       navigate('/');
-    } catch (err) {
-      toast.error("Sign out failed");
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast.error('Sign-out failed');
     }
   };
 

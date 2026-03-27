@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import LocationEngine from '../engine/LocationEngine';
 import { db } from '../firebase';
@@ -5,8 +6,6 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 
 const LocationContext = createContext();
-
-export const useLocation = () => useContext(LocationContext);
 
 export const LocationProvider = ({ children }) => {
   const { currentUser, role, isApproved } = useAuth();
@@ -18,6 +17,7 @@ export const LocationProvider = ({ children }) => {
     if (role === 'safari_driver' && isApproved && currentUser) {
       LocationEngine.start(currentUser.uid, 'active', async (update) => {
         setCurrentLocation(update);
+        setIsTracking(true); // Call inside callback
         
         // Push to Firestore
         try {
@@ -30,7 +30,6 @@ export const LocationProvider = ({ children }) => {
           console.error('Failed to update location in Firestore', error);
         }
       });
-      setIsTracking(true);
     }
 
     return () => {
@@ -50,3 +49,5 @@ export const LocationProvider = ({ children }) => {
     </LocationContext.Provider>
   );
 };
+
+export const useLocation = () => useContext(LocationContext);

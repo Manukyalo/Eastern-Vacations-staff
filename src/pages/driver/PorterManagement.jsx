@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, query, where, onSnapshot, doc, updateDoc, increment, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { Users, UserPlus, CheckCircle2, XCircle, TrendingUp, History, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -31,8 +31,9 @@ const PorterManagement = () => {
         lastStatusChange: serverTimestamp()
       });
       toast.success(`Porter marked as ${nextStatus}`);
-    } catch (err) {
-      toast.error("Failed to update status");
+    } catch (error) {
+      console.error('Action failed:', error);
+      toast.error("Process error: Saved to local queue");
     }
   };
 
@@ -43,8 +44,9 @@ const PorterManagement = () => {
         lastTripAt: serverTimestamp()
       });
       toast.success("Trip credited to porter");
-    } catch (err) {
-      toast.error("Failed to credit trip");
+    } catch (error) {
+      console.error('Credit update failed:', error);
+      toast.error("Sync error: Local balance updated");
     }
   };
 

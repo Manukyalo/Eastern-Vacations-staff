@@ -7,6 +7,7 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import { format } from 'date-fns';
 
 const DriverDashboard = () => {
+  const navigate = useNavigate();
   const { driverProfile } = useAuth();
   const { activeBookings, stats } = useDriver();
 

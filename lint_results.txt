@@ -1,0 +1,186 @@
+
+> eastern-vacations-staff@0.0.0 lint
+> eslint .
+
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\components\face\FaceScanner.jsx
+  13:5   error    Error: Cannot access variable before it is declared
+
+`startCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  11 |
+  12 |   useEffect(() => {
+> 13 |     startCamera();
+     |     ^^^^^^^^^^^ `startCamera` accessed before it is declared
+  14 |     return () => stopCamera();
+  15 |   }, []);
+  16 |
+
+  15 |   }, []);
+  16 |
+> 17 |   const startCamera = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 18 |     try {
+     | ^^^^^^^^^
+> 19 |       const constraints = {
+     …
+     | ^^^^^^^^^
+> 32 |     }
+     | ^^^^^^^^^
+> 33 |   };
+     | ^^^^^ `startCamera` is declared here
+  34 |
+  35 |   const stopCamera = () => {
+  36 |     if (stream) {                                                                                                          react-hooks/immutability
+  14:18  error    Error: Cannot access variable before it is declared
+
+`stopCamera` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  12 |   useEffect(() => {
+  13 |     startCamera();
+> 14 |     return () => stopCamera();
+     |                  ^^^^^^^^^^ `stopCamera` accessed before it is declared
+  15 |   }, []);
+  16 |
+  17 |   const startCamera = async () => {
+
+  33 |   };
+  34 |
+> 35 |   const stopCamera = () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 36 |     if (stream) {
+     | ^^^^^^^^^^^^^^^^^
+> 37 |       stream.getTracks().forEach(track => track.stop());
+     | ^^^^^^^^^^^^^^^^^
+> 38 |     }
+     | ^^^^^^^^^^^^^^^^^
+> 39 |   };
+     | ^^^^^ `stopCamera` is declared here
+  40 |
+  41 |   const handleScan = async () => {
+  42 |     if (status !== 'ready') return;  react-hooks/immutability
+  15:6   warning  React Hook useEffect has missing dependencies: 'startCamera' and 'stopCamera'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  61:14  error    'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\context\AuthContext.jsx
+  8:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\context\DriverContext.jsx
+   8:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  15:17  error  'setStats' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                        no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\context\LocationContext.jsx
+   9:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-refresh/only-export-components
+  33:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  31 |         }
+  32 |       });
+> 33 |       setIsTracking(true);
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  34 |     }
+  35 |
+  36 |     return () => {  react-hooks/set-state-in-effect
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\engine\FaceEngine.js
+  44:36  error  'driverEmail' is defined but never used  no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\engine\OfflineSyncEngine.js
+  44:11  error  'db' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\driver\DriverDashboard.jsx
+   2:10  error  'useNavigate' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  50:29  error  'navigate' is not defined                                                           no-undef
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\driver\DriverLogin.jsx
+   1:17  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u         no-unused-vars
+  13:10  error  'step' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u     no-unused-vars
+  13:16  error  'setStep' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\driver\DriverTripDetail.jsx
+  56:14  error  'err' is defined but never used  no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\driver\PorterManagement.jsx
+   3:22  error  'query' is defined but never used. Allowed unused vars must match /^[A-Z_]/u   no-unused-vars
+   3:29  error  'where' is defined but never used. Allowed unused vars must match /^[A-Z_]/u   no-unused-vars
+   3:75  error  'addDoc' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  34:14  error  'err' is defined but never used                                                no-unused-vars
+  46:14  error  'err' is defined but never used                                                no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\safari\ParkFees.jsx
+  57:14  error  'err' is defined but never used  no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\safari\SOSSystem.jsx
+  20:7   error    Error: Cannot access variable before it is declared
+
+`triggerSOS` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  18 |       timer = setInterval(() => setCountdown(prev => prev - 1), 1000);
+  19 |     } else if (countdown === 0 && isActive && !isTriggered) {
+> 20 |       triggerSOS();
+     |       ^^^^^^^^^^ `triggerSOS` accessed before it is declared
+  21 |     }
+  22 |     return () => clearInterval(timer);
+  23 |   }, [isActive, countdown]);
+
+  23 |   }, [isActive, countdown]);
+  24 |
+> 25 |   const triggerSOS = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 26 |     setIsTriggered(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 27 |     const toastId = toast.loading("TRANSMITTING SOS SIGNAL...");
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 43 |     }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 44 |   };
+     | ^^^^^ `triggerSOS` is declared here
+  45 |
+  46 |   const cancelSOS = () => {
+  47 |     setIsActive(false);  react-hooks/immutability
+  23:6   warning  React Hook useEffect has missing dependencies: 'isTriggered' and 'triggerSOS'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+  41:14  error    'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\safari\SafariDashboard.jsx
+  13:11  error  'driverProfile' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\safari\SafariLogin.jsx
+  41:14  error  'error' is defined but never used  no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\safari\SafariRegister.jsx
+  42:14  error  'error' is defined but never used  no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\safari\SafariTripDetail.jsx
+  56:14  error  'err' is defined but never used  no-unused-vars
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\shared\ExpenseLog.jsx
+  24:24  error  'useRef' is not defined                                                               no-undef
+  25:10  error  'zoom' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  27:3   error  'useEffect' is not defined                                                            no-undef
+
+C:\Users\Manu\Desktop\Eastern Vacations Staff\src\pages\shared\LiveMap.jsx
+  22:7  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  20 |     // Only initialize zoom if not set
+  21 |     if (zoom === 12) {
+> 22 |       setZoom(12.5); // Example usage to satisfy lint
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  23 |     }
+  24 |   }, [zoom]);
+  25 |  react-hooks/set-state-in-effect
+  57:6  warning  React Hook useEffect has a missing dependency: 'zoom'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+
+✖ 35 problems (32 errors, 3 warnings)
+
