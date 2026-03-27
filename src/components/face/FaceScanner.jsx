@@ -3,47 +3,35 @@ import * as faceapi from 'face-api.js';
 import { Camera, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const CDN_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+
 const FaceScanner = ({ onCapture, mode = 'register' }) => {
   const videoRef = useRef(null);
   const [status, setStatus] = useState('loading-models'); // loading-models, loading-camera, ready, success, error
   const [errorMessage, setErrorMessage] = useState('');
+  const [loadingMessage, setLoadingMessage] = useState('Initializing biometric engine...');
   const [isCapturing, setIsCapturing] = useState(false);
+  const [retryVisible, setRetryVisible] = useState(false);
 
-  // 1. Load models first
+  // 1. Initial Compatibility & Persistence Check
   useEffect(() => {
-    const loadModels = async () => {
-      const LOCAL_MODEL_URL = '/models';
-      const CDN_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+    // Immediate compatibility check
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErrorMessage('Your browser does not support camera access. Please use Chrome or Safari.');
+      setStatus('error');
+      return;
+    }
 
-      try {
-        setStatus('loading-models');
-        console.log('FaceScanner: Attempting local model load...');
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri(LOCAL_MODEL_URL),
-          faceapi.nets.faceLandmark68Net.loadFromUri(LOCAL_MODEL_URL),
-          faceapi.nets.faceRecognitionNet.loadFromUri(LOCAL_MODEL_URL)
-        ]);
-        console.log('FaceScanner: Local models loaded');
-        startCamera();
-      } catch (localError) {
-        console.warn('FaceScanner: Local models failed, trying CDN...', localError);
-        try {
-          await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri(CDN_MODEL_URL),
-            faceapi.nets.faceLandmark68Net.loadFromUri(CDN_MODEL_URL),
-            faceapi.nets.faceRecognitionNet.loadFromUri(CDN_MODEL_URL)
-          ]);
-          console.log('FaceScanner: CDN models loaded');
-          startCamera();
-        } catch (cdnError) {
-          console.error('FaceScanner: All model loading failed', cdnError);
-          setErrorMessage('Failed to load Face ID models. Check your connection.');
-          setStatus('error');
-        }
-      }
-    };
+    // Skip loading if already loaded in this session
+    if (sessionStorage.getItem('faceModelsLoaded') === 'true') {
+      console.log('FaceScanner: Models detected in session, skipping load...');
+      startCamera();
+      return;
+    }
+
     loadModels();
 
+    // Cleanup tracks on unmount
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
         videoRef.current.srcObject.getTracks().forEach(track => track.stop());
@@ -51,9 +39,65 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
     };
   }, []);
 
+  const loadModels = async () => {
+    setStatus('loading-models');
+    setLoadingMessage('Step 1/3: Loading face detector...');
+    
+    // 15s Retry timer
+    const retryTimer = setTimeout(() => setRetryVisible(true), 15000);
+    
+    // 30s Hard timeout
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('timeout')), 30000)
+    );
+    
+    try {
+      await Promise.race([
+        loadAllModels(),
+        timeout
+      ]);
+      
+      clearTimeout(retryTimer);
+      sessionStorage.setItem('faceModelsLoaded', 'true');
+      console.log('FaceScanner: Biometric engine ready');
+      startCamera();
+    } catch (err) {
+      clearTimeout(retryTimer);
+      console.error('FaceScanner: Loading failed', err);
+      setErrorMessage(err.message === 'timeout' 
+        ? 'Loading timed out. Please check your connection.' 
+        : 'Failed to initialize Face ID. Check your internet connection.');
+      setStatus('error');
+    }
+  };
+
+  const loadAllModels = async () => {
+    // Although we use Promise.all for speed, we step through messages to provide feedback
+    // The CDN is very fast, so parallelizing is key.
+    try {
+      await Promise.all([
+        (async () => {
+          await faceapi.nets.tinyFaceDetector.loadFromUri(CDN_URL);
+          setLoadingMessage('Step 2/3: Loading landmark model...');
+        })(),
+        (async () => {
+          await faceapi.nets.faceLandmark68Net.loadFromUri(CDN_URL);
+          setLoadingMessage('Step 3/3: Loading recognition model...');
+        })(),
+        (async () => {
+          await faceapi.nets.faceRecognitionNet.loadFromUri(CDN_URL);
+        })()
+      ]);
+      setLoadingMessage('Optimizing engine...');
+    } catch (err) {
+      throw err;
+    }
+  };
+
   // 2. Start camera
   const startCamera = async () => {
     setStatus('loading-camera');
+    setLoadingMessage('Activating camera unit...');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -90,7 +134,7 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
   // 3. Start detection after video is playing
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || status !== 'ready') return;
 
     const handlePlaying = () => {
       console.log('Video playing, starting detection in 1s...');
@@ -161,8 +205,18 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
       {(status === 'loading-models' || status === 'loading-camera') && (
         <div className="flex flex-col items-center z-20 text-center px-6">
           <Loader2 className="text-accent-gold animate-spin mb-4" size={40} />
-          <h3 className="text-white font-bold text-lg">Loading Face ID...</h3>
-          <p className="text-white/50 text-sm mt-2">Please wait while we initialize the biometric engine</p>
+          <h3 className="text-white font-bold text-lg">{loadingMessage}</h3>
+          <p className="text-white/40 text-sm mt-2">Loading biometric assets in parallel for high performance</p>
+          
+          {retryVisible && status === 'loading-models' && (
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-8 bg-white/10 hover:bg-white/20 text-white/50 py-2 px-6 rounded-full text-xs transition-all flex items-center gap-2"
+            >
+              <RefreshCw size={14} />
+              Taking too long? Try Again
+            </button>
+          )}
         </div>
       )}
 
@@ -224,4 +278,5 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
 };
 
 export default FaceScanner;
+
 
