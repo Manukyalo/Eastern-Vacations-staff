@@ -79,7 +79,7 @@ const SafariRegister = () => {
               <input
                 type="email"
                 name="email"
-                placeholder="Company Email"
+                placeholder="Personal Email"
                 required
                 value={formData.email}
                 onChange={handleInputChange}

@@ -74,7 +74,7 @@ const DriverLogin = () => {
             <input
               type="email"
               name="email"
-              placeholder="Email Address"
+              placeholder="Personal Email"
               required
               value={formData.email}
               onChange={handleInputChange}

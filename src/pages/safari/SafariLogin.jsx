@@ -67,7 +67,7 @@ const SafariLogin = () => {
             <input
               type="email"
               name="email"
-              placeholder="Driver Email"
+              placeholder="Personal Email"
               required
               value={formData.email}
               onChange={handleInputChange}
