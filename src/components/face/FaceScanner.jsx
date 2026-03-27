@@ -24,20 +24,31 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
 
       const constraints = {
         video: {
-          facingMode: 'user'
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
         }
       };
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
+      
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        
+        // Wait for video metadata to be loaded to ensure videoWidth/videoHeight are available
+        await new Promise((resolve) => {
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play();
+            resolve();
+          };
+        });
       }
       setStatus('ready');
     } catch (error) {
       console.error('Camera access failed:', error);
-      toast.error('Unable to access camera. Please check permissions.');
       setStatus('error');
       setErrorMessage(error.message || 'Camera access denied.');
+      toast.error('Camera initialization failed.');
     }
   }, []);
 

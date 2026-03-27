@@ -46,21 +46,25 @@ class FaceEngine {
     return new Promise((resolve, reject) => {
       const interval = setInterval(async () => {
         try {
+          // Normalize input to 256x256 square to prevent tensor shape mismatch
+          const normalizedCanvas = this.extractSquareFrame(videoElement, 256);
+          
           const detection = await faceapi
-            .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
+            .detectSingleFace(normalizedCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 256 }))
             .withFaceLandmarks()
             .withFaceDescriptor();
 
           if (detection) {
             descriptors.push(detection.descriptor);
             framesCaptured++;
+            console.log(`FaceEngine: Captured frame ${framesCaptured}/${maxFrames}`);
 
             if (framesCaptured >= maxFrames) {
               clearInterval(interval);
               
               const averageDescriptor = this.calculateAverageDescriptor(descriptors);
-              const canvas = faceapi.createCanvasFromMedia(videoElement);
-              const base64Image = canvas.toDataURL('image/jpeg', 0.6); 
+              // Use the normalized canvas for the final image to ensure consistency
+              const base64Image = normalizedCanvas.toDataURL('image/jpeg', 0.8); 
               
               resolve({
                 descriptor: Array.from(averageDescriptor),
@@ -70,8 +74,9 @@ class FaceEngine {
           }
         } catch (error) {
           console.error("Detection error:", error);
+          // Don't reject yet, just log and retry in next interval
         }
-      }, 500);
+      }, 600); // Slightly slower for stability
     });
   }
 
@@ -84,8 +89,11 @@ class FaceEngine {
     try {
       const storedDescriptor = new Float32Array(storedDescriptorArray);
       
+      // Normalize input
+      const normalizedCanvas = this.extractSquareFrame(videoElement, 256);
+
       const detection = await faceapi
-        .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
+        .detectSingleFace(normalizedCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 256 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
@@ -96,7 +104,7 @@ class FaceEngine {
       const distance = faceapi.euclideanDistance(detection.descriptor, storedDescriptor);
       console.log(`FaceEngine: Verification distance: ${distance}`);
 
-      // Thresholds as per requirements: < 0.5 Match, 0.5-0.6 Uncertain, > 0.6 No Match
+      // Thresholds: < 0.5 Match, 0.5-0.6 Uncertain, > 0.6 No Match
       if (distance < 0.5) {
         return { match: true, confidence: 1 - distance };
       } else if (distance <= 0.6) {
@@ -111,19 +119,33 @@ class FaceEngine {
   }
 
   /**
-   * Basic liveness check using head movement and landmarks
+   * Extracts a square center crop from a video or canvas element
    */
-  async checkLiveness(videoElement) {
-    // Basic implementation: check for blink or slight movement
-    // In a real scenario, we'd use more complex temporal analysis
-    const detection = await faceapi
-      .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks();
+  extractSquareFrame(source, size = 256) {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
 
-    if (!detection) return false;
-    
-    // Placeholder for more advanced anti-spoofing
-    return true; 
+    const srcWidth = source.videoWidth || source.width;
+    const srcHeight = source.videoHeight || source.height;
+
+    // Calculate center crop
+    let sx, sy, sWidth, sHeight;
+    if (srcWidth > srcHeight) {
+      sHeight = srcHeight;
+      sWidth = srcHeight;
+      sx = (srcWidth - srcHeight) / 2;
+      sy = 0;
+    } else {
+      sWidth = srcWidth;
+      sHeight = srcWidth;
+      sx = 0;
+      sy = (srcHeight - srcWidth) / 2;
+    }
+
+    ctx.drawImage(source, sx, sy, sWidth, sHeight, 0, 0, size, size);
+    return canvas;
   }
 
   calculateAverageDescriptor(descriptors) {
