@@ -67,14 +67,14 @@ class FaceEngine {
               // Average descriptors for better accuracy
               const averageDescriptor = this.calculateAverageDescriptor(descriptors);
               
-              // Capture the best frame as a blob for storage
+              // Capture the best frame as Base64 for storage (saves cost)
               const canvas = faceapi.createCanvasFromMedia(videoElement);
-              canvas.toBlob((blob) => {
-                resolve({
-                  descriptor: Array.from(averageDescriptor),
-                  imageBlob: blob
-                });
-              }, 'image/jpeg', 0.9);
+              const base64Image = canvas.toDataURL('image/jpeg', 0.7); // 0.7 quality for size optimization
+              
+              resolve({
+                descriptor: Array.from(averageDescriptor),
+                imageBlob: base64Image // Keeping the key name the same to minimize changes elsewhere
+              });
             }
           }
         } catch (error) {

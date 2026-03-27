@@ -1,10 +1,9 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FaceScanner from '../../components/face/FaceScanner';
-import { auth, db, storage } from '../../firebase';
+import { auth, db } from '../../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
 
 const SafariFaceScan = () => {
@@ -24,13 +23,10 @@ const SafariFaceScan = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      const faceRef = ref(storage, `driverFaces/${formData.email}/registration.jpg`);
-      await uploadBytes(faceRef, imageBlob);
-      const faceImageUrl = await getDownloadURL(faceRef);
-
+      // Save face as Base64 in Firestore to avoid Storage costs
       await setDoc(doc(db, 'driverAuth', user.uid), {
         faceDescriptor: descriptor,
-        faceImageUrl: faceImageUrl,
+        faceImageUrl: imageBlob, // Base64 from FaceEngine
         role: 'safari_driver',
         approved: false,
         registeredAt: serverTimestamp(),

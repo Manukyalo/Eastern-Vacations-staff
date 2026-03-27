@@ -1,10 +1,9 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FaceScanner from '../../components/face/FaceScanner';
-import { auth, db, storage } from '../../firebase';
+import { auth, db } from '../../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
 
 const DriverFaceScan = () => {
@@ -25,15 +24,10 @@ const DriverFaceScan = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // 2. Upload Face Image to Storage
-      const faceRef = ref(storage, `driverFaces/${formData.email}/registration.jpg`);
-      await uploadBytes(faceRef, imageBlob);
-      const faceImageUrl = await getDownloadURL(faceRef);
-
-      // 3. Create driverAuth document
+      // 2. Create driverAuth document (Image saved as Base64 to avoid Storage costs)
       await setDoc(doc(db, 'driverAuth', user.uid), {
         faceDescriptor: descriptor,
-        faceImageUrl: faceImageUrl,
+        faceImageUrl: imageBlob, // Now contains Base64 string from FaceEngine
         role: 'driver',
         approved: false,
         registeredAt: serverTimestamp(),
