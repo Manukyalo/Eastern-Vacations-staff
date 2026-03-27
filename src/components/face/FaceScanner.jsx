@@ -9,8 +9,19 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
   const [stream, setStream] = useState(null);
   const [status, setStatus] = useState('initializing'); // initializing, ready, scanning, success, error
   const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+  }, [stream]);
+
   const startCamera = useCallback(async () => {
     try {
+      setStatus('initializing');
+      await FaceEngine.init();
+
       const constraints = {
         video: {
           facingMode: 'user'
@@ -26,7 +37,7 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
       console.error('Camera access failed:', error);
       toast.error('Unable to access camera. Please check permissions.');
       setStatus('error');
-      setErrorMessage('Camera access denied. Please enable permissions.');
+      setErrorMessage(error.message || 'Camera access denied.');
     }
   }, []);
 
