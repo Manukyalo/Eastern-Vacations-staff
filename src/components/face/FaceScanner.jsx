@@ -9,42 +9,24 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
   const [stream, setStream] = useState(null);
   const [status, setStatus] = useState('initializing'); // initializing, ready, scanning, success, error
   const [progress, setProgress] = useState(0);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [modelsReady, setModelsReady] = useState(false);
-
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-  }, [stream]);
-
   const startCamera = useCallback(async () => {
     try {
-      // 1. Ensure models are loaded first
-      setStatus('initializing');
-      await FaceEngine.init();
-      setModelsReady(true);
-
-      // 2. Start camera with standard constraints
       const constraints = {
         video: {
           facingMode: 'user'
         }
       };
-      
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-      
-      // Delay setting ready to ensure video is pumping frames
-      setTimeout(() => setStatus('ready'), 1000);
+      setStatus('ready');
     } catch (error) {
-      console.error('FaceScanner Initialization failed:', error);
-      toast.error('Initialization failed. Check camera permissions.');
+      console.error('Camera access failed:', error);
+      toast.error('Unable to access camera. Please check permissions.');
       setStatus('error');
-      setErrorMessage(error.message || 'Camera access denied.');
+      setErrorMessage('Camera access denied. Please enable permissions.');
     }
   }, []);
 

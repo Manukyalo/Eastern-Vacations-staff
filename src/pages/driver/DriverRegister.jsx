@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { User, Mail, Phone, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
+import { User, Mail, Phone, Lock, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const DriverRegister = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -121,27 +122,41 @@ const DriverRegister = () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-gold" size={20} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Create Password"
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold transition-colors"
+                  className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-12 text-white focus:border-accent-gold transition-colors"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-accent-gold transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
 
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-gold" size={20} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   name="confirmPassword"
                   placeholder="Confirm Password"
                   required
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold transition-colors"
+                  className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-12 text-white focus:border-accent-gold transition-colors"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-accent-gold transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
             </div>
 
