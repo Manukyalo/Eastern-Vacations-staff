@@ -15,35 +15,40 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+    console.log('AuthContext: Initialization started');
+    // Safety timeout to prevent permanent black screen if Firebase hangs
+    const safetyTimer = setTimeout(() => {
+      if (isLoading) {
+        console.warn('AuthContext: Loading timed out. Forcing UI mount.');
+        setIsLoading(false);
+      }
+    }, 3000);
+
+    return () => clearTimeout(safetyTimer);
+  }, [isLoading]);
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      console.log('AuthContext: onAuthStateChanged fired', user?.uid);
       setCurrentUser(user);
       
       if (user) {
-        // Start onSnapshot listeners for profile and auth
         const profileRef = doc(db, 'drivers', user.uid);
         const authRef = doc(db, 'driverAuth', user.uid);
 
-        const unsubProfile = onSnapshot(profileRef, (docSnap) => {
-          if (docSnap.exists()) {
-            setDriverProfile(docSnap.data());
-          }
+        onSnapshot(profileRef, (docSnap) => {
+          if (docSnap.exists()) setDriverProfile(docSnap.data());
         });
 
-        const unsubAuth = onSnapshot(authRef, (docSnap) => {
+        onSnapshot(authRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setDriverAuth(data);
             setRole(data.role);
             setIsApproved(data.approved);
           }
+          setIsLoading(false);
         });
-
-        setIsLoading(false);
-
-        return () => {
-          unsubProfile();
-          unsubAuth();
-        };
       } else {
         setDriverProfile(null);
         setDriverAuth(null);

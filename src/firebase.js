@@ -21,7 +21,14 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const messaging = getMessaging(app);
+let messaging = null;
+try {
+  messaging = getMessaging(app);
+} catch (error) {
+  console.warn('Firebase Messaging not supported or blocked:', error);
+}
+
+export { messaging };
 
 // Enable Firestore offline persistence
 enableIndexedDbPersistence(db).catch((err) => {
