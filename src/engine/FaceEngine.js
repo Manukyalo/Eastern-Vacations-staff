@@ -90,6 +90,7 @@ class FaceEngine {
     } else {
       throw new Error("Face capture timed out or interrupted.");
     }
+  }
 
   /**
    * Verifies a live face against a stored descriptor
