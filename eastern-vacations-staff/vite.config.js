@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       manifest: {
-        name: 'Eastern Vacations Driver',
-        short_name: 'EV Driver',
-        description: 'Eastern Vacations Field Operations Portal for Drivers',
+        name: 'Eastern Vacations Staff',
+        short_name: 'EV Staff',
+        description: 'Eastern Vacations Field Operations Portal for Staff and Drivers',
         theme_color: '#0A0F0D',
         background_color: '#0A0F0D',
         display: 'standalone',
@@ -39,6 +39,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 6000000,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.mapbox\.com\/.*/i,
