@@ -15,17 +15,24 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
 
   // 1. Initial Compatibility & Persistence Check
   useEffect(() => {
-    // Immediate compatibility check
+    // 1.1 Secure Context check (Face API requires HTTPS)
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      setErrorMessage('Secure connection required for Face ID. Please use HTTPS.');
+      setStatus('error');
+      return;
+    }
+
+    // 1.2 MediaDevices check
     if (!navigator.mediaDevices?.getUserMedia) {
       setErrorMessage('Your browser does not support camera access. Please use Chrome or Safari.');
       setStatus('error');
       return;
     }
 
-    // Skip loading if already loaded in this session
+    // 1.3 Skip loading if already loaded in this session
     if (sessionStorage.getItem('faceModelsLoaded') === 'true') {
       console.log('FaceScanner: Models detected in session, skipping load...');
-      startCamera();
+      initiateCameraSequence();
       return;
     }
 
@@ -33,34 +40,31 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
 
     // Cleanup tracks on unmount
     return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-      }
+      stopCamera();
     };
   }, []);
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
 
   const loadModels = async () => {
     setStatus('loading-models');
     setLoadingMessage('Step 1/3: Loading face detector...');
     
-    // 15s Retry timer
     const retryTimer = setTimeout(() => setRetryVisible(true), 15000);
-    
-    // 30s Hard timeout
     const timeout = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('timeout')), 30000)
     );
     
     try {
-      await Promise.race([
-        loadAllModels(),
-        timeout
-      ]);
-      
+      await Promise.race([loadAllModels(), timeout]);
       clearTimeout(retryTimer);
       sessionStorage.setItem('faceModelsLoaded', 'true');
-      console.log('FaceScanner: Biometric engine ready');
-      startCamera();
+      initiateCameraSequence();
     } catch (err) {
       clearTimeout(retryTimer);
       console.error('FaceScanner: Loading failed', err);
@@ -72,8 +76,6 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
   };
 
   const loadAllModels = async () => {
-    // Although we use Promise.all for speed, we step through messages to provide feedback
-    // The CDN is very fast, so parallelizing is key.
     try {
       await Promise.all([
         (async () => {
@@ -94,10 +96,37 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
     }
   };
 
-  // 2. Start camera
-  const startCamera = async () => {
+  // 2. Camera Sequence
+  const initiateCameraSequence = async () => {
     setStatus('loading-camera');
-    setLoadingMessage('Activating camera unit...');
+    setLoadingMessage('Requesting camera permission...');
+    
+    const hasPermission = await checkCameraPermission();
+    if (hasPermission) {
+      startCamera();
+    }
+  };
+
+  const checkCameraPermission = async () => {
+    try {
+      if (!navigator.permissions?.query) return true; // API not supported, proceed to getUserMedia
+      
+      const permission = await navigator.permissions.query({ name: 'camera' });
+      if (permission.state === 'denied') {
+        setErrorMessage('Camera permission denied. Please go to your browser settings and allow camera access for this site, then refresh the page.');
+        setStatus('error');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      return true; // Proceed anyway, getUserMedia will catch errors
+    }
+  };
+
+  const startCamera = async () => {
+    setLoadingMessage('Starting camera...');
+    stopCamera(); // Ensure clean slate
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -107,31 +136,41 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
         },
         audio: false
       });
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Wait for metadata ready
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Camera timeout')), 10000);
+          videoRef.current.onloadedmetadata = () => {
+            clearTimeout(timeout);
+            resolve();
+          };
+          videoRef.current.onerror = reject;
+        });
+
         await videoRef.current.play();
         setStatus('ready');
       }
     } catch (err) {
-      console.warn('Primary camera failed, trying fallback...', err);
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: true, 
-          audio: false 
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          setStatus('ready');
-        }
-      } catch (fallbackErr) {
-        setErrorMessage('Camera access denied. Please allow camera permission.');
-        setStatus('error');
+      console.error('Camera startup failed:', err);
+      if (err.name === 'NotAllowedError') {
+        setErrorMessage('Camera access denied. Please allow camera permission in your browser settings and try again.');
+      } else if (err.name === 'NotFoundError') {
+        setErrorMessage('No camera found on this device.');
+      } else if (err.name === 'NotReadableError') {
+        setErrorMessage('Camera is already in use by another app. Please close other apps using the camera and try again.');
+      } else {
+        setErrorMessage(err.message === 'Camera timeout' 
+          ? 'Camera took too long to start. Please refresh and try again.' 
+          : 'Camera failed to start: ' + err.message);
       }
+      setStatus('error');
     }
   };
 
-  // 3. Start detection after video is playing
+  // 3. Status handling for detection
   useEffect(() => {
     const video = videoRef.current;
     if (!video || status !== 'ready') return;
@@ -149,14 +188,13 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
     if (!videoRef.current || isCapturing) return;
     
     try {
-      // Wait for video to be ready (HAVE_CURRENT_DATA or better)
       if (videoRef.current.readyState < 2) {
         setTimeout(detectFace, 500);
         return;
       }
 
       const options = new faceapi.TinyFaceDetectorOptions({
-        inputSize: 224, // REQUIRED: Fixes tensor shape error
+        inputSize: 224,
         scoreThreshold: 0.3
       });
 
@@ -166,10 +204,8 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
         .withFaceDescriptor();
 
       if (detection) {
-        // Face found!
         handleSuccess(detection);
       } else {
-        // No face found, retry
         setTimeout(detectFace, 500);
       }
     } catch (err) {
@@ -182,12 +218,16 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
     setIsCapturing(true);
     setStatus('success');
 
-    // Capture the frame as Base64 for Firestore storage
     const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
     const ctx = canvas.getContext('2d');
+    
+    // Mirror the capture as well for consistency
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
     ctx.drawImage(videoRef.current, 0, 0);
+    
     const imageBlob = canvas.toDataURL('image/jpeg', 0.8);
 
     if (onCapture) {
@@ -244,8 +284,13 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
             autoPlay
             playsInline
             muted
-            width="320"
-            height="240"
+            controls={false}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transform: 'scaleX(-1)'
+            }}
             className={`w-full h-full object-cover transition-opacity duration-500 ${status === 'success' ? 'opacity-50' : 'opacity-100'}`}
           />
           
@@ -259,7 +304,7 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
 
           <div className="absolute top-8 left-0 right-0 text-center">
             <p className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-bold inline-block uppercase tracking-widest">
-              {status === 'success' ? 'Verification Complete' : 'Position face inside the oval'}
+              {status === 'success' ? 'Verification Complete' : 'Camera Ready — Position Face'}
             </p>
           </div>
         </>
