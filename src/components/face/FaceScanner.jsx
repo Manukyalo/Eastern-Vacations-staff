@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
-import { Camera, RefreshCw, ShieldCheck, X } from 'lucide-react';
+import { Camera, RefreshCw, ShieldCheck, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import FaceEngine from '../../engine/FaceEngine';
 
 const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
   const videoRef = useRef(null);
@@ -142,7 +142,7 @@ const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
             onClick={startCamera}
             className="bg-accent-gold text-primary-dark font-bold py-3 px-8 rounded-full flex items-center gap-2 pointer-events-auto"
           >
-            <RefreshCcw size={20} />
+            <RefreshCw size={20} />
             Try Again
           </button>
         )}
