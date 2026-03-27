@@ -28,9 +28,14 @@ const Profile = () => {
     <div className="p-6 pt-12 space-y-8 animate-in fade-in duration-700 pb-24">
        {/* Header */}
        <div className="flex justify-between items-center px-2">
-         <h1 className="text-3xl font-heading font-black text-white uppercase tracking-tight">
-           DRIVER <span className={accentColor}>PROFILE</span>
-         </h1>
+         <div className="flex items-center gap-3">
+            <div className="w-8 h-8 select-none">
+              <img src="/logo.png" alt="EV" className="w-full h-full object-contain" />
+            </div>
+            <h1 className="text-2xl font-heading font-black text-white uppercase tracking-tight">
+              DRIVER <span className={accentColor}>PROFILE</span>
+            </h1>
+         </div>
          <div className={`w-10 h-10 bg-card border border-border rounded-xl flex items-center justify-center ${accentColor}`}>
            <Settings size={20} />
          </div>

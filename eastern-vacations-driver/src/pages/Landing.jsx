@@ -13,9 +13,13 @@ const Landing = () => {
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent-gold/5 rounded-full blur-[150px]" />
       </div>
 
-      <div className="z-10 w-full max-w-md flex flex-col items-center">
-        {/* Logo Section */}
-        <div className="mb-12 text-center">
+      <div className="relative z-10 w-full max-w-md flex flex-col items-center justify-center p-8 space-y-12">
+      {/* Branding Logo */}
+      <div className="w-24 h-24 mb-4 select-none animate-in fade-in zoom-in duration-1000">
+        <img src="/logo.png" alt="Eastern Vacations" className="w-full h-full object-contain filter drop-shadow-2xl" />
+      </div>
+
+      <div className="text-center space-y-2">
           <div className="w-20 h-20 bg-accent-gold rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(201,168,76,0.2)] mx-auto rotate-3 hover:rotate-0 transition-transform duration-500">
             <ShieldCheck size={40} className="text-primary-dark" />
           </div>

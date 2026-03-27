@@ -16,7 +16,7 @@ const DriverDashboard = () => {
   return (
     <div className="p-6 pt-12 space-y-8 animate-in fade-in duration-700">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start px-2">
         <div>
           <h1 className="text-3xl font-heading font-black text-white uppercase tracking-tight">
             FIELD <span className="text-accent-gold">UNIT</span>
@@ -25,11 +25,13 @@ const DriverDashboard = () => {
             {format(today, 'EEEE, MMM do yyyy')}
           </p>
         </div>
-        <div className="relative">
-          <div className="w-12 h-12 bg-surface border border-border rounded-xl flex items-center justify-center">
-            <Bell size={24} className="text-text-muted" />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 overflow-hidden select-none">
+            <img src="/logo.png" alt="EV" className="w-full h-full object-contain" />
           </div>
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent-gold rounded-full border-2 border-primary-dark" />
+          <div className="w-10 h-10 bg-card border border-border rounded-xl flex items-center justify-center text-accent-gold">
+            <Bell size={20} />
+          </div>
         </div>
       </div>
 

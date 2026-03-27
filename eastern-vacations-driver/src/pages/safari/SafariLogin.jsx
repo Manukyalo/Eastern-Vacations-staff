@@ -46,8 +46,13 @@ const SafariLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-primary-dark flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-md">
+    <div className="p-8 pt-16 flex flex-col items-center justify-center min-h-screen space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 bg-primary-dark">
+      {/* Brand Logo */}
+      <div className="w-20 h-20 mb-4 select-none">
+        <img src="/logo.png" alt="Eastern Vacations" className="w-full h-full object-contain filter contrast-125 brightness-110 drop-shadow-xl" />
+      </div>
+
+      <div className="text-center space-y-2">
         <div className="text-center mb-10">
           <div className="w-16 h-16 bg-accent-green/10 border border-accent-green/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Map size={32} className="text-accent-green" />

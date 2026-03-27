@@ -20,17 +20,22 @@ const SafariDashboard = () => {
   return (
     <div className="p-6 pt-12 space-y-8 animate-in fade-in duration-700 bg-primary-dark">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start px-2">
         <div>
           <h1 className="text-3xl font-heading font-black text-white uppercase tracking-tight">
-            EXPEDITION <span className="text-accent-green">CMD</span>
+            FIELD <span className="text-accent-green">EXPEDITION</span>
           </h1>
-          <p className="text-accent-green font-mono text-xs mt-1 uppercase tracking-widest">
-            OPERATIONAL — {format(today, 'HH:mm')}
+          <p className="text-accent-green font-mono text-[10px] mt-1 uppercase tracking-[0.2em] font-bold">
+            {format(today, 'EEEE, MMM do yyyy')}
           </p>
         </div>
-        <div className="w-12 h-12 bg-card border border-accent-green/20 rounded-xl flex items-center justify-center text-accent-green">
-          <Zap size={24} className={isTracking ? "animate-pulse" : "opacity-30"} />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 overflow-hidden select-none">
+            <img src="/logo.png" alt="EV" className="w-full h-full object-contain filter brightness-125" />
+          </div>
+          <div className={`w-10 h-10 bg-card border border-border rounded-xl flex items-center justify-center ${isTracking ? 'text-accent-green' : 'text-text-muted'}`}>
+            <MapPin size={20} />
+          </div>
         </div>
       </div>
 
