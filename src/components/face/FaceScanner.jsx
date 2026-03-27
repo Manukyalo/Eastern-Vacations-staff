@@ -1,174 +1,210 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as faceapi from 'face-api.js';
-import { Camera, RefreshCw, ShieldCheck, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Camera, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import FaceEngine from '../../engine/FaceEngine';
 
-const FaceScanner = ({ onCapture, mode = 'register', driverEmail }) => {
+const FaceScanner = ({ onCapture, mode = 'register' }) => {
   const videoRef = useRef(null);
-  const [stream, setStream] = useState(null);
-  const [status, setStatus] = useState('initializing'); // initializing, ready, scanning, success, error
-  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState('loading-models'); // loading-models, loading-camera, ready, success, error
   const [errorMessage, setErrorMessage] = useState('');
+  const [isCapturing, setIsCapturing] = useState(false);
 
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-  }, [stream]);
-
-  const startCamera = useCallback(async () => {
-    try {
-      setStatus('initializing');
-      await FaceEngine.init();
-
-      const constraints = {
-        video: {
-          facingMode: 'user',
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
-      };
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      setStream(mediaStream);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        
-        // Wait for video metadata to be loaded to ensure videoWidth/videoHeight are available
-        await new Promise((resolve) => {
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play();
-            resolve();
-          };
-        });
+  // 1. Load models first
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        setStatus('loading-models');
+        await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+        await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+        console.log('Models loaded successfully');
+        startCamera();
+      } catch (err) {
+        console.error('Model loading failed:', err);
+        setErrorMessage('Failed to load Face ID models. Check your connection.');
+        setStatus('error');
       }
-      setStatus('ready');
-    } catch (error) {
-      console.error('Camera access failed:', error);
-      setStatus('error');
-      setErrorMessage(error.message || 'Camera access denied.');
-      toast.error('Camera initialization failed.');
-    }
+    };
+    loadModels();
+
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      }
+    };
   }, []);
 
-  useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, [startCamera, stopCamera]);
-
-  const handleScan = async () => {
-    if (status !== 'ready') return;
-    setStatus('scanning');
-    setProgress(0);
-
+  // 2. Start camera
+  const startCamera = async () => {
+    setStatus('loading-camera');
     try {
-      // Simulate progress for UI
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 300);
-
-      const result = await FaceEngine.registerFace(videoRef.current, driverEmail);
-      
-      clearInterval(progressInterval);
-      setProgress(100);
-      setStatus('success');
-      
-      if (onCapture) {
-        onCapture(result);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 320 },
+          height: { ideal: 240 }
+        },
+        audio: false
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        setStatus('ready');
       }
     } catch (err) {
-      setStatus('error');
-      setErrorMessage('Face capture failed. Please ensure you are in a well-lit area.');
+      console.warn('Primary camera failed, trying fallback...', err);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: false 
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+          setStatus('ready');
+        }
+      } catch (fallbackErr) {
+        setErrorMessage('Camera access denied. Please allow camera permission.');
+        setStatus('error');
+      }
+    }
+  };
+
+  // 3. Start detection after video is playing
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handlePlaying = () => {
+      console.log('Video playing, starting detection in 1s...');
+      setTimeout(detectFace, 1000);
+    };
+
+    video.addEventListener('playing', handlePlaying);
+    return () => video.removeEventListener('playing', handlePlaying);
+  }, [status]);
+
+  const detectFace = async () => {
+    if (!videoRef.current || isCapturing) return;
+    
+    try {
+      // Wait for video to be ready (HAVE_CURRENT_DATA or better)
+      if (videoRef.current.readyState < 2) {
+        setTimeout(detectFace, 500);
+        return;
+      }
+
+      const options = new faceapi.TinyFaceDetectorOptions({
+        inputSize: 224, // REQUIRED: Fixes tensor shape error
+        scoreThreshold: 0.3
+      });
+
+      const detection = await faceapi
+        .detectSingleFace(videoRef.current, options)
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (detection) {
+        // Face found!
+        handleSuccess(detection);
+      } else {
+        // No face found, retry
+        setTimeout(detectFace, 500);
+      }
+    } catch (err) {
+      console.error('Detection error:', err);
+      setTimeout(detectFace, 1000);
+    }
+  };
+
+  const handleSuccess = (detection) => {
+    setIsCapturing(true);
+    setStatus('success');
+
+    // Capture the frame as Base64 for Firestore storage
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoRef.current, 0, 0);
+    const imageBlob = canvas.toDataURL('image/jpeg', 0.8);
+
+    if (onCapture) {
+      onCapture({
+        descriptor: Array.from(detection.descriptor),
+        imageBlob: imageBlob
+      });
     }
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto aspect-[3/4] bg-primary-dark rounded-2xl overflow-hidden border border-border shadow-2xl">
-      {/* Camera Feed */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className={`w-full h-full object-cover ${status === 'scanning' ? 'brightness-75' : ''}`}
-      />
+    <div className="relative w-full max-w-md mx-auto aspect-[3/4] bg-primary-dark rounded-2xl overflow-hidden border border-border shadow-2xl flex flex-col items-center justify-center">
+      
+      {/* Loading States */}
+      {(status === 'loading-models' || status === 'loading-camera') && (
+        <div className="flex flex-col items-center z-20 text-center px-6">
+          <Loader2 className="text-accent-gold animate-spin mb-4" size={40} />
+          <h3 className="text-white font-bold text-lg">Loading Face ID...</h3>
+          <p className="text-white/50 text-sm mt-2">Please wait while we initialize the biometric engine</p>
+        </div>
+      )}
 
-      {/* Oval Overlay */}
-      <div className={`absolute inset-0 flex items-center justify-center pointer-events-none`}>
-        <div className={`
-          w-[75%] aspect-[3/4.5] border-2 rounded-[50%] transition-all duration-300
-          ${status === 'scanning' ? 'border-accent-gold scale-105 shadow-[0_0_20px_rgba(201,168,76,0.5)]' : 'border-white/30'}
-          ${status === 'success' ? 'border-success' : ''}
-          ${status === 'error' ? 'border-danger-red' : ''}
-        `} />
-      </div>
-
-      {/* Overlay Feedback */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        {status === 'initializing' && (
-          <div className="flex flex-col items-center bg-black/40 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl">
-            <RefreshCw className="text-accent-gold animate-spin mb-4" size={32} />
-            <p className="text-white font-bold tracking-tight">Preparing Face ID...</p>
-            <p className="text-white/40 text-[10px] mt-2 uppercase tracking-[0.2em]">Optimizing Engine</p>
-          </div>
-        )}
-
-        {status === 'ready' && (
-          <p className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium animate-pulse absolute bottom-12">
-            Position face in oval
-          </p>
-        )}
-        
-        {status === 'scanning' && (
-          <div className="flex flex-col items-center">
-            <p className="bg-accent-gold text-primary-dark px-4 py-2 rounded-full text-sm font-bold mb-4">
-              Scanning... {progress}%
-            </p>
-            <div className="w-48 h-1 bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full bg-accent-gold transition-all duration-300" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-        )}
-
-        {status === 'success' && (
-          <div className="bg-success/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl flex items-center gap-2">
-            <CheckCircle2 size={24} />
-            <span className="font-bold uppercase tracking-wider">Face Captured</span>
-          </div>
-        )}
-
-        {status === 'error' && (
-          <div className="bg-danger-red/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl flex items-center gap-2 max-w-[80%] text-center">
-            <AlertCircle size={24} className="shrink-0" />
-            <span className="text-sm font-medium">{errorMessage}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Controls */}
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6">
-        {status === 'ready' && (
+      {/* Error State */}
+      {status === 'error' && (
+        <div className="flex flex-col items-center z-20 text-center px-6">
+          <AlertCircle className="text-danger-red mb-4" size={40} />
+          <h3 className="text-white font-bold text-lg">System Error</h3>
+          <p className="text-white/60 text-sm mt-2">{errorMessage}</p>
           <button
-            onClick={handleScan}
-            className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-          >
-            <div className="w-12 h-12 border-4 border-primary-dark rounded-full" />
-          </button>
-        )}
-        
-        {status === 'error' && (
-          <button
-            onClick={startCamera}
-            className="bg-accent-gold text-primary-dark font-bold py-3 px-8 rounded-full flex items-center gap-2 pointer-events-auto"
+            onClick={() => window.location.reload()}
+            className="mt-6 bg-accent-gold text-primary-dark font-bold py-3 px-8 rounded-full flex items-center gap-2"
           >
             <RefreshCw size={20} />
-            Try Again
+            Reset System
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Camera View */}
+      {(status === 'ready' || status === 'success') && (
+        <>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            width="320"
+            height="240"
+            className={`w-full h-full object-cover transition-opacity duration-500 ${status === 'success' ? 'opacity-50' : 'opacity-100'}`}
+          />
+          
+          {/* Oval Overlay */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className={`
+              w-[70%] aspect-[3/4] border-2 rounded-[50%] transition-all duration-500
+              ${status === 'success' ? 'border-success scale-110 shadow-[0_0_30px_rgba(72,187,120,0.5)]' : 'border-white/30 animate-pulse'}
+            `} />
+          </div>
+
+          <div className="absolute top-8 left-0 right-0 text-center">
+            <p className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-bold inline-block uppercase tracking-widest">
+              {status === 'success' ? 'Verification Complete' : 'Position face inside the oval'}
+            </p>
+          </div>
+        </>
+      )}
+
+      {status === 'success' && (
+        <div className="absolute inset-0 bg-success/20 flex flex-col items-center justify-center z-10">
+          <div className="bg-white rounded-full p-4 mb-4 shadow-2xl animate-bounce">
+            <Camera className="text-success" size={32} />
+          </div>
+          <p className="text-white font-black uppercase tracking-tighter text-xl">Encoded</p>
+        </div>
+      )}
     </div>
   );
 };
 
 export default FaceScanner;
+

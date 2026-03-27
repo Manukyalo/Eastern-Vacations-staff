@@ -12,19 +12,13 @@ class FaceEngine {
 
     this.loadingPromise = (async () => {
       try {
-        // Paths relative to public folder
-        const MODEL_URLS = {
-          tinyFaceDetector: '/models/tiny_face_detector',
-          faceLandmark68: '/models/face_landmark_68',
-          faceRecognition: '/models/face_recognition'
-        };
-
-        console.log('FaceEngine: Loading models...');
+        console.log('FaceEngine: Loading models from /models...');
         
+        // Load from root /models path as per new organization
         await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URLS.tinyFaceDetector),
-          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URLS.faceLandmark68),
-          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URLS.faceRecognition)
+          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+          faceapi.nets.faceRecognitionNet.loadFromUri('/models')
         ]);
 
         this.modelsLoaded = true;
@@ -32,56 +26,48 @@ class FaceEngine {
       } catch (error) {
         console.error('FaceEngine: Failed to load models', error);
         throw error;
+        this.loadingPromise = null; // Reset on failure
       }
     })();
 
     return this.loadingPromise;
   }
 
-  async registerFace(videoElement, driverEmail) {
-    const descriptors = [];
-    const maxFrames = 3;
-    let framesCaptured = 0;
+  /**
+   * Registration now happens directly in FaceScanner.jsx for robustness.
+   * This method remains for backward compatibility or future use,
+   * now updated to follow the 224 input standard.
+   */
+  async registerFace(videoElement) {
+    await this.init();
+    
+    // Passing videoElement directly as per CRITICAL RULES
+    const detection = await faceapi
+      .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({ 
+        inputSize: 224,
+        scoreThreshold: 0.3 
+      }))
+      .withFaceLandmarks()
+      .withFaceDescriptor();
 
-    return new Promise((resolve, reject) => {
-      const interval = setInterval(async () => {
-        try {
-          // Normalize input to 256x256 square to prevent tensor shape mismatch
-          const normalizedCanvas = this.extractSquareFrame(videoElement, 256);
-          
-          const detection = await faceapi
-            .detectSingleFace(normalizedCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 256 }))
-            .withFaceLandmarks()
-            .withFaceDescriptor();
+    if (!detection) throw new Error('NO_FACE_DETECTED');
 
-          if (detection) {
-            descriptors.push(detection.descriptor);
-            framesCaptured++;
-            console.log(`FaceEngine: Captured frame ${framesCaptured}/${maxFrames}`);
-
-            if (framesCaptured >= maxFrames) {
-              clearInterval(interval);
-              
-              const averageDescriptor = this.calculateAverageDescriptor(descriptors);
-              // Use the normalized canvas for the final image to ensure consistency
-              const base64Image = normalizedCanvas.toDataURL('image/jpeg', 0.8); 
-              
-              resolve({
-                descriptor: Array.from(averageDescriptor),
-                imageBlob: base64Image 
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Detection error:", error);
-          // Don't reject yet, just log and retry in next interval
-        }
-      }, 600); // Slightly slower for stability
-    });
+    // Simple capture for the Base64 image
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoElement, 0, 0);
+    
+    return {
+      descriptor: Array.from(detection.descriptor),
+      imageBlob: canvas.toDataURL('image/jpeg', 0.8)
+    };
   }
 
   /**
-   * Verifies a live face against a stored descriptor
+   * Verifies a live face against a stored descriptor.
+   * Updated to use inputSize: 224 to match the new registration standard.
    */
   async verifyFace(videoElement, storedDescriptorArray) {
     await this.init();
@@ -89,11 +75,12 @@ class FaceEngine {
     try {
       const storedDescriptor = new Float32Array(storedDescriptorArray);
       
-      // Normalize input
-      const normalizedCanvas = this.extractSquareFrame(videoElement, 256);
-
+      // Pass videoElement DIRECTLY to fix tensor shape errors
       const detection = await faceapi
-        .detectSingleFace(normalizedCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 256 }))
+        .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({ 
+          inputSize: 224,
+          scoreThreshold: 0.3 
+        }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
@@ -104,11 +91,9 @@ class FaceEngine {
       const distance = faceapi.euclideanDistance(detection.descriptor, storedDescriptor);
       console.log(`FaceEngine: Verification distance: ${distance}`);
 
-      // Thresholds: < 0.5 Match, 0.5-0.6 Uncertain, > 0.6 No Match
-      if (distance < 0.5) {
+      // Threshold: < 0.6 is generally a good match for face-api
+      if (distance < 0.6) {
         return { match: true, confidence: 1 - distance };
-      } else if (distance <= 0.6) {
-        return { match: 'UNCERTAIN', distance };
       } else {
         return { match: false, distance };
       }
@@ -117,51 +102,7 @@ class FaceEngine {
       throw error;
     }
   }
-
-  /**
-   * Extracts a square center crop from a video or canvas element
-   */
-  extractSquareFrame(source, size = 256) {
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    const srcWidth = source.videoWidth || source.width;
-    const srcHeight = source.videoHeight || source.height;
-
-    // Calculate center crop
-    let sx, sy, sWidth, sHeight;
-    if (srcWidth > srcHeight) {
-      sHeight = srcHeight;
-      sWidth = srcHeight;
-      sx = (srcWidth - srcHeight) / 2;
-      sy = 0;
-    } else {
-      sWidth = srcWidth;
-      sHeight = srcWidth;
-      sx = 0;
-      sy = (srcHeight - srcWidth) / 2;
-    }
-
-    ctx.drawImage(source, sx, sy, sWidth, sHeight, 0, 0, size, size);
-    return canvas;
-  }
-
-  calculateAverageDescriptor(descriptors) {
-    const size = descriptors[0].length;
-    const avg = new Float32Array(size);
-    
-    for (let i = 0; i < size; i++) {
-      let sum = 0;
-      for (const d of descriptors) {
-        sum += d[i];
-      }
-      avg[i] = sum / descriptors.length;
-    }
-    
-    return avg;
-  }
 }
 
 export default new FaceEngine();
+
