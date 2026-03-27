@@ -58,7 +58,7 @@ class FaceEngine {
 
         try {
           const detection = await faceapi
-            .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.7 }))
+            .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
             .withFaceLandmarks()
             .withFaceDescriptor();
 
