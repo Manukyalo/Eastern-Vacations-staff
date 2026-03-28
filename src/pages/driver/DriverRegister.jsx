@@ -93,7 +93,7 @@ const DriverRegister = () => {
               <input
                 type="email"
                 name="email"
-                placeholder="Registered Email"
+                placeholder="Personal Email"
                 required
                 value={formData.email}
                 onChange={handleInputChange}
