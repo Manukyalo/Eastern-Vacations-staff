@@ -9,6 +9,7 @@ import { LocationProvider } from './context/LocationContext';
 import Landing from './pages/Landing';
 import DriverLogin from './pages/driver/DriverLogin';
 import DriverRegister from './pages/driver/DriverRegister';
+import DriverFaceScan from './pages/driver/DriverFaceScan';
 import DriverPendingApproval from './pages/driver/DriverPendingApproval';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import SafariLogin from './pages/safari/SafariLogin';
@@ -60,6 +61,7 @@ const AppContent = () => {
         {/* Driver Routes */}
         <Route path="/driver/login" element={<DriverLogin />} />
         <Route path="/driver/register" element={<DriverRegister />} />
+        <Route path="/driver/face-scan" element={<DriverFaceScan />} />
         <Route path="/driver/pending" element={
           <ProtectedRoute allowedRole="driver">
             <DriverPendingApproval />
