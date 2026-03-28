@@ -188,48 +188,85 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
     };
   }, [isModelsLoaded]);
 
-  // 4. Detection Loop
-  useEffect(() => {
-    if (status !== 'ready' || !isMounted.current) return;
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [detections, setDetections] = useState([]);
 
-    let detectionTimeout;
-    const loop = async () => {
-      if (!videoRef.current || isCapturing || !isMounted.current) return;
-      
+  // 4. Robust Detection Engine
+  const averageDescriptors = (descriptors) => {
+    const avg = new Float32Array(128);
+    descriptors.forEach(desc => {
+      desc.forEach((val, i) => avg[i] += val);
+    });
+    avg.forEach((val, i) => avg[i] = val / descriptors.length);
+    return avg;
+  };
+
+  const startDetection = useCallback(async () => {
+    if (!videoRef.current || !isMounted.current) return;
+    
+    // Ensure video is literally playing and ready
+    if (videoRef.current.readyState < 2) {
+      setTimeout(startDetection, 500);
+      return;
+    }
+
+    const options = new faceapi.TinyFaceDetectorOptions({
+      inputSize: 224,
+      scoreThreshold: 0.3
+    });
+
+    const detect = async () => {
+      if (!isMounted.current || !videoRef.current || isCapturing) return;
+
       try {
-        if (videoRef.current.readyState < 2) {
-          detectionTimeout = setTimeout(loop, 500);
-          return;
-        }
-
-        const options = new faceapi.TinyFaceDetectorOptions({
-          inputSize: 224,
-          scoreThreshold: 0.3
-        });
-
         const detection = await faceapi
           .detectSingleFace(videoRef.current, options)
           .withFaceLandmarks()
           .withFaceDescriptor();
 
         if (detection && isMounted.current) {
-          handleSuccess(detection);
+          setFaceDetected(true);
+          
+          setDetections(prev => {
+            const newList = [...prev, detection];
+            
+            // If we have 5 detections, finalize
+            if (newList.length >= 5) {
+              const avgDescriptor = averageDescriptors(newList.map(d => d.descriptor));
+              handleSuccess(detection, avgDescriptor);
+              return newList;
+            }
+            return newList;
+          });
         } else if (isMounted.current) {
-          detectionTimeout = setTimeout(loop, 500);
+          setFaceDetected(false);
         }
       } catch (err) {
-        if (isMounted.current) detectionTimeout = setTimeout(loop, 1000);
+        console.error('Detection error:', err.message);
+      }
+
+      // Continue loop every 300ms for responsiveness
+      if (isMounted.current && !isCapturing) {
+        setTimeout(detect, 300);
       }
     };
 
-    const startDetection = setTimeout(loop, 1000);
-    return () => {
-      clearTimeout(startDetection);
-      clearTimeout(detectionTimeout);
-    };
-  }, [status, isCapturing]);
+    detect();
+  }, [isCapturing]);
 
-  const handleSuccess = (detection) => {
+  // Trigger detection when ready
+  useEffect(() => {
+    if (status === 'ready' && videoRef.current) {
+      const handlePlaying = () => {
+        setTimeout(startDetection, 1000);
+      };
+      
+      videoRef.current.addEventListener('playing', handlePlaying, { once: true });
+      return () => videoRef.current?.removeEventListener('playing', handlePlaying);
+    }
+  }, [status, startDetection]);
+
+  const handleSuccess = (detection, avgDescriptor) => {
     setIsCapturing(true);
     setStatus('success');
 
@@ -240,10 +277,12 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
     
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
-    const imageData = canvas.toDataURL('image/jpeg', 0.6); // Slightly compressed for document size
+    ctx.drawImage(videoRef.current, 0, 0);
+    const imageData = canvas.toDataURL('image/jpeg', 0.6);
+
     if (onCapture) {
       onCapture({
-        descriptor: Array.from(detection.descriptor),
+        descriptor: Array.from(avgDescriptor || detection.descriptor),
         imageBlob: imageData
       });
     }
@@ -258,16 +297,6 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
           <Loader2 className="text-accent-gold animate-spin mb-4" size={40} />
           <h3 className="text-white font-bold text-lg">{loadingMessage}</h3>
           <p className="text-white/30 text-xs mt-2 uppercase tracking-widest font-medium">Biometric Engine v2.0</p>
-          
-          {retryVisible && status === 'loading-models' && (
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-8 bg-white/10 hover:bg-white/20 text-white/50 py-2 px-6 rounded-full text-xs transition-all flex items-center gap-2"
-            >
-              <RefreshCw size={14} />
-              Reset Engine
-            </button>
-          )}
         </div>
       )}
 
@@ -287,7 +316,7 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
         </div>
       )}
 
-      {/* Stable Video View — Unmounted only if error/loading-models */}
+      {/* Stable Video View */}
       {isModelsLoaded && status !== 'error' && (
         <>
           <video
@@ -296,45 +325,66 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
             playsInline
             muted
             controls={false}
-            webkit-playsinline="true"
-            x5-playsinline="true"
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              transform: 'scaleX(-1)', // Mirrored view
+              transform: 'scaleX(-1)', 
               visibility: (status === 'ready' || status === 'success') ? 'visible' : 'hidden'
             }}
             className={`w-full h-full transition-opacity duration-1000 ${status === 'success' ? 'opacity-50' : 'opacity-100'}`}
           />
           
-          {/* Overlay elements only show when ready */}
+          {/* Real-time Feedback Overlay */}
           {(status === 'ready' || status === 'success') && (
             <>
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className={`
-                  w-[70%] aspect-[3/4] border-2 rounded-[50%] transition-all duration-700
-                  ${status === 'success' ? 'border-success scale-110 shadow-[0_0_40px_rgba(72,187,120,0.6)]' : 'border-white/20 animate-pulse'}
+                  w-[70%] aspect-[3/4] border-2 rounded-[50%] transition-all duration-300
+                  ${status === 'success' ? 'border-success scale-105 shadow-[0_0_40px_rgba(72,187,120,0.6)]' : 
+                    detections.length > 0 ? 'border-accent-gold animate-pulse shadow-[0_0_30px_rgba(212,175,55,0.4)]' : 
+                    faceDetected ? 'border-accent-gold' : 'border-white/20'}
                 `} />
               </div>
 
-              <div className="absolute top-8 left-0 right-0 text-center">
-                <p className="bg-black/60 backdrop-blur-xl text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] inline-block border border-white/10">
-                  {status === 'success' ? 'Face Verified' : 'Position Face Inside Oval'}
-                </p>
+              <div className="absolute top-8 left-0 right-0 text-center px-4">
+                <div className="bg-black/60 backdrop-blur-xl text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] inline-flex items-center gap-3 border border-white/10 shadow-2xl">
+                  {status === 'success' ? (
+                    <>
+                      <div className="w-2 h-2 bg-success rounded-full" />
+                      <span className="text-success text-xs">✓ Face Captured!</span>
+                    </>
+                  ) : detections.length > 0 ? (
+                    <>
+                      <div className="w-2 h-2 bg-accent-gold rounded-full animate-ping" />
+                      <span>Scanning... {detections.length}/5</span>
+                    </>
+                  ) : faceDetected ? (
+                    <>
+                      <div className="w-2 h-2 bg-accent-gold rounded-full" />
+                      <span>Hold still...</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-2 h-2 bg-white/20 rounded-full" />
+                      <span className="text-white/60">Position your face</span>
+                    </>
+                  )}
+                </div>
               </div>
+
+              {/* Progress bar at bottom */}
+              {!isCapturing && detections.length > 0 && (
+                 <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/5">
+                    <div 
+                      className="h-full bg-accent-gold transition-all duration-300"
+                      style={{ width: `${(detections.length / 5) * 100}%` }}
+                    />
+                 </div>
+              )}
             </>
           )}
         </>
-      )}
-
-      {status === 'success' && (
-        <div className="absolute inset-0 bg-success/10 flex flex-col items-center justify-center z-10 animate-in fade-in zoom-in duration-500">
-          <div className="bg-white rounded-full p-5 mb-4 shadow-2xl">
-            <Camera className="text-success" size={32} />
-          </div>
-          <p className="text-white font-black uppercase tracking-[0.3em] text-sm">Capturing Data</p>
-        </div>
       )}
     </div>
   );

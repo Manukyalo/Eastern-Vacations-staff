@@ -36,7 +36,12 @@ const DriverFaceScan = () => {
         lastLogin: serverTimestamp(),
         fcmToken: null,
         loginAttempts: 0,
-        lockedUntil: null
+        lockedUntil: null,
+
+        // Personal details for Admin visibility
+        name: formData.fullName,
+        phone: formData.phone,
+        driverDocId: formData.driverId
       });
 
       // Step 7: Write to notifications collection

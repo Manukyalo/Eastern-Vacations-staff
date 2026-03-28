@@ -46,7 +46,11 @@ const SafariFaceScan = () => {
         lastLogin: serverTimestamp(),
         driverDocId: formData.driverId,
         loginAttempts: 0,
-        lockedUntil: null
+        lockedUntil: null,
+        
+        // Personal details for Admin visibility
+        name: formData.fullName,
+        phone: formData.phone
       });
 
       // Step 7: Write to notifications collection
