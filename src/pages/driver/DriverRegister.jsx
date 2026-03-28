@@ -35,19 +35,14 @@ const DriverRegister = () => {
       const q = query(driversRef, where('email', '==', cleanEmail));
       const querySnapshot = await getDocs(q);
       
-      if (querySnapshot.empty) {
-        setIsVerifying(false);
-        return toast.error("Driver details not found for: " + cleanEmail + ". Contact office.");
-      }
-
-      const driverDoc = querySnapshot.docs[0];
-      const driverData = driverDoc.data();
+      const driverDoc = querySnapshot.empty ? null : querySnapshot.docs[0];
       
-      // Merge with system data to ensure consistency
+      // Merge with system data if exists, otherwise proceed as new driver
       setFormData(prev => ({ 
         ...prev, 
-        driverId: driverDoc.id,
-        fullName: driverData.name || prev.fullName 
+        driverId: driverDoc?.id || null,
+        fullName: driverDoc?.data()?.name || prev.fullName,
+        isNewDriver: querySnapshot.empty
       }));
       
       // Proceed to Face Scan
