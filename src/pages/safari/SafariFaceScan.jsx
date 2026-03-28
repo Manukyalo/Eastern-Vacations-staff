@@ -22,7 +22,8 @@ const SafariFaceScan = () => {
     
     try {
       // Step 4: Create Firebase Auth account FIRST
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const cleanEmail = formData.email.trim().toLowerCase();
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, formData.password);
       user = userCredential.user;
 
       // Step 6a: Link to Admin-created Personnel record (Firestore)
