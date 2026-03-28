@@ -25,9 +25,11 @@ const DriverFaceScan = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       user = userCredential.user;
 
-      // Step 6: Write to Firestore driverAuth collection (Now includes Base64 image)
-      await setDoc(doc(db, 'driverAuth', user.uid), {
+      // Step 6: Create Registration Payload
+      const registrationPayload = {
+        uid: user.uid,
         email: user.email,
+        personalEmail: user.email,
         faceDescriptor: descriptor,
         faceImageUrl: imageBlob, // Base64 Data URL (free on Spark Plan)
         role: 'driver',
@@ -42,7 +44,14 @@ const DriverFaceScan = () => {
         name: formData.fullName,
         phone: formData.phone,
         driverDocId: formData.driverId
-      });
+      };
+
+      // 6a. Update primary personnel record (if exists) or create new one using UID as ID
+      const driverRef = formData.driverId ? doc(db, 'drivers', formData.driverId) : doc(db, 'drivers', user.uid);
+      await setDoc(driverRef, registrationPayload, { merge: true });
+
+      // 6b. Create request in approval queue for headquarters
+      await setDoc(doc(db, 'driverAuth', user.uid), registrationPayload);
 
       // Step 7: Write to notifications collection
       await addDoc(collection(db, 'notifications'), {

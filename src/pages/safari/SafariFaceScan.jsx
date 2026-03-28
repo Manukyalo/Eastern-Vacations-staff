@@ -31,6 +31,7 @@ const SafariFaceScan = () => {
         uid: user.uid,
         name: formData.fullName,
         email: cleanEmail,
+        personalEmail: cleanEmail,
         phone: formData.phone || '',
         status: 'Pending',
         faceDescriptor: descriptor,
