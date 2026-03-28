@@ -73,7 +73,7 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
         <Route path="/driver/dashboard" element={
-          <ProtectedRoute allowedRoles="driver">
+          <ProtectedRoute allowedRoles={['driver', 'tour_guide']}>
             <DriverDashboard />
           </ProtectedRoute>
         } />
@@ -83,12 +83,12 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
         <Route path="/driver/trips" element={
-          <ProtectedRoute allowedRoles="driver">
+          <ProtectedRoute allowedRoles={['driver', 'tour_guide']}>
             <DriverTrips />
           </ProtectedRoute>
         } />
         <Route path="/driver/trip/:id" element={
-          <ProtectedRoute allowedRole="driver">
+          <ProtectedRoute allowedRoles={['driver', 'tour_guide']}>
             <DriverTripDetail />
           </ProtectedRoute>
         } />
@@ -108,17 +108,17 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
         <Route path="/driver/messages" element={
-          <ProtectedRoute allowedRole="driver">
+          <ProtectedRoute allowedRoles={['driver', 'tour_guide', 'porter']}>
             <Chat role="driver" />
           </ProtectedRoute>
         } />
         <Route path="/driver/profile" element={
-          <ProtectedRoute allowedRole="driver">
+          <ProtectedRoute allowedRoles={['driver', 'tour_guide', 'porter']}>
             <Profile />
           </ProtectedRoute>
         } />
         <Route path="/driver/map" element={
-          <ProtectedRoute allowedRole="driver">
+          <ProtectedRoute allowedRoles={['driver', 'tour_guide', 'porter']}>
             <LiveMap />
           </ProtectedRoute>
         } />

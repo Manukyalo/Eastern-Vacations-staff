@@ -52,7 +52,7 @@ const DriverRegister = () => {
       }));
       
       // Proceed to Face Scan
-      setStep(2);
+      setStep(3);
     } catch (error) {
       console.error("Verification error:", error);
       toast.error("Verification failed: " + (error.code || error.message));
@@ -83,15 +83,15 @@ const DriverRegister = () => {
         {step === 1 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
              <h3 className="text-center text-white font-bold text-sm uppercase tracking-widest mb-2">Select Your Professional Role</h3>
-             <div className="grid grid-cols-1 gap-4">
+             <div className="grid grid-cols-1 gap-4 mb-8">
                {roles.map((r) => (
                  <button
                   key={r.id}
                   onClick={() => handleRoleSelect(r.id)}
-                  className={`relative p-6 rounded-3xl border text-left transition-all duration-300 group ${formData.role === r.id ? 'bg-accent-gold border-accent-gold shadow-lg shadow-accent-gold/20' : 'bg-surface border-border hover:border-accent-gold/50'}`}
+                  className={`relative p-6 rounded-3xl border text-left transition-all duration-300 group ${formData.role === r.id ? 'bg-accent-gold border-accent-gold shadow-lg shadow-accent-gold/20 scale-[1.02]' : 'bg-surface border-border hover:border-accent-gold/30'}`}
                  >
                    <div className="flex items-center gap-4">
-                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${formData.role === r.id ? 'bg-primary-dark text-accent-gold' : 'bg-card text-accent-gold group-hover:bg-accent-gold/20'}`}>
+                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${formData.role === r.id ? 'bg-primary-dark text-accent-gold ring-4 ring-primary-dark/10' : 'bg-card text-accent-gold group-hover:bg-accent-gold/20'}`}>
                         {r.icon}
                      </div>
                      <div>
@@ -99,8 +99,25 @@ const DriverRegister = () => {
                        <p className={`text-[10px] font-bold uppercase tracking-widest ${formData.role === r.id ? 'text-primary-dark/60' : 'text-text-muted'}`}>{r.desc}</p>
                      </div>
                    </div>
+                   {formData.role === r.id && (
+                     <div className="absolute right-6 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary-dark flex items-center justify-center animate-in zoom-in duration-300">
+                        <ShieldCheck size={14} className="text-accent-gold" />
+                     </div>
+                   )}
                  </button>
                ))}
+             </div>
+
+             <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+               <button
+                onClick={() => setStep(2)}
+                disabled={!formData.role}
+                className="w-full bg-accent-gold text-primary-dark font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-[10px] uppercase tracking-[0.2em] group"
+               >
+                 Confirm Role & Proceed
+                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+               </button>
+               <p className="text-center text-[8px] text-text-muted mt-4 font-bold uppercase tracking-widest opacity-50">Please verify your selection above</p>
              </div>
           </div>
         )}

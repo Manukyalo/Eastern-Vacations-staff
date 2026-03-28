@@ -9,7 +9,7 @@ import { format, isValid } from 'date-fns';
 
 const DriverDashboard = () => {
   const navigate = useNavigate();
-  const { driverProfile } = useAuth();
+  const { driverProfile, role } = useAuth();
   const { activeBookings } = useDriver();
   const { currentLocation, isTracking } = useLocation();
 
@@ -27,10 +27,10 @@ const DriverDashboard = () => {
       <div className="flex justify-between items-start px-2">
         <div>
           <h1 className="text-3xl font-heading font-black text-white uppercase tracking-tight">
-            FIELD <span className="text-accent-gold">UNIT</span>
+            {role === 'tour_guide' ? 'CITY' : 'FIELD'} <span className="text-accent-gold">UNIT</span>
           </h1>
-          <p className="text-accent-gold font-mono text-xs mt-1 uppercase tracking-widest">
-            {format(today, 'EEEE, MMM do yyyy')}
+          <p className="text-accent-gold font-mono text-[10px] mt-1 uppercase tracking-[0.3em] font-black">
+            {role === 'tour_guide' ? 'Professional Tour Guide' : 'Fleet Operations Captain'}
           </p>
         </div>
         <div className="flex items-center gap-3">

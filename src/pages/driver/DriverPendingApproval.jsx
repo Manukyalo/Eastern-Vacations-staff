@@ -40,12 +40,14 @@ const DriverPendingApproval = () => {
               </div>
               <div>
                 <p className="text-white font-bold">{driverProfile?.name || 'Driver Name'}</p>
-                <p className="text-text-muted text-xs uppercase tracking-wider">{driverAuth?.role?.replace('_', ' ') || 'Driver'}</p>
+                <p className="text-text-muted text-xs uppercase tracking-wider">
+                  {driverAuth?.role === 'porter' ? 'Logistics Support' : driverAuth?.role === 'tour_guide' ? 'City Tour Guide' : 'Fleet Driver'}
+                </p>
               </div>
             </div>
 
             <p className="text-text-muted text-sm leading-relaxed pt-2">
-              Your registration has been submitted and is currently being reviewed by the administration team. You will be notified once your face ID is verified.
+              Your {driverAuth?.role || 'personnel'} application is currently being reviewed by our dispatch team. You will be notified once your face ID is verified for duty.
             </p>
           </div>
         </div>

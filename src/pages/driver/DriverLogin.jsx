@@ -56,8 +56,16 @@ const DriverLogin = () => {
   };
 
   const handleFaceSuccess = () => {
-    toast.success("Welcome back, Captain!");
-    navigate('/driver/dashboard');
+    const role = storedData?.role;
+    toast.success(`Welcome back, ${role === 'porter' ? 'Logistic Specialist' : role === 'tour_guide' ? 'City Scout' : 'Captain'}!`);
+    
+    if (role === 'porter') {
+      navigate('/porter/dashboard');
+    } else {
+      // Both 'driver' and 'tour_guide' use the main driver dashboard for now, 
+      // but keep the logic open for future role-specific ones.
+      navigate('/driver/dashboard');
+    }
   };
 
   const handleFaceFail = () => {

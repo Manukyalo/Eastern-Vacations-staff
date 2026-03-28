@@ -9,10 +9,14 @@ const Landing = () => {
 
   React.useEffect(() => {
     if (currentUser && role) {
-      if (role === 'safari_driver') navigate('/safari/dashboard');
-      else if (role === 'porter') navigate('/porter/dashboard');
-      else if (role === 'tour_guide') navigate('/driver/dashboard'); // Use driver dashboard for guides for now
-      else if (role === 'driver') navigate('/driver/dashboard');
+      if (role === 'safari_driver') {
+        navigate('/safari/dashboard');
+      } else if (role === 'porter') {
+        navigate('/porter/dashboard');
+      } else {
+        // Both 'driver' and 'tour_guide' currently use the main driver dashboard
+        navigate('/driver/dashboard');
+      }
     }
   }, [currentUser, role, navigate]);
 
