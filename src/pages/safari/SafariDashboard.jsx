@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDriver } from '../../context/DriverContext';
 import { useLocation } from '../../context/LocationContext';
-import { Bell, Map as MapIcon, Compass, Anchor, ChevronRight, Zap, MapPin } from 'lucide-react';
+import { Bell, MapPin, Compass, Anchor, ChevronRight, Zap } from 'lucide-react';
 import StatusBadge from '../../components/ui/StatusBadge';
 import SOSButton from '../../components/ui/SOSButton';
 import { format, isValid } from 'date-fns';
@@ -22,7 +22,7 @@ const SafariDashboard = () => {
   });
 
   return (
-    <div className="p-6 pt-12 space-y-8 animate-in fade-in duration-700 bg-primary-dark">
+    <div className="p-6 pt-12 space-y-8 animate-in fade-in duration-700 bg-primary-dark min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-start px-2">
         <div>
@@ -45,7 +45,7 @@ const SafariDashboard = () => {
 
       {/* Tracking Card */}
       <div className="bg-card border border-accent-green/20 p-6 rounded-[2rem] relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-8 opacity-5">
+        <div className="absolute top-0 right-0 p-8 opacity-10 transition-transform duration-1000 ease-out" style={{ transform: `rotate(${currentLocation?.heading || 0}deg)` }}>
           <Compass size={120} className="text-accent-green" />
         </div>
         
@@ -68,7 +68,7 @@ const SafariDashboard = () => {
 
           <div className="mt-6 flex items-center gap-3">
              <div className="px-3 py-1 bg-accent-green/10 border border-accent-green/20 rounded-lg text-accent-green text-[10px] font-black uppercase">
-               Maasai Mara Boundary
+               Field Unit Active
              </div>
              <div className="px-3 py-1 bg-white/5 rounded-lg text-text-muted text-[10px] font-bold uppercase">
                Battery: {currentLocation?.batteryLevel || 100}%
@@ -90,7 +90,7 @@ const SafariDashboard = () => {
               <div>
                 <p className="text-white font-black text-2xl tracking-tight mb-1">{todaysSafari.clientName}</p>
                 <div className="flex items-center gap-2 text-accent-green uppercase font-bold text-[10px] tracking-widest">
-                  <MapIcon size={12} />
+                  <MapPin size={12} />
                   {todaysSafari.packageName}
                 </div>
               </div>
@@ -104,7 +104,7 @@ const SafariDashboard = () => {
                </div>
                <div>
                   <p className="text-text-muted text-[10px] uppercase font-bold mb-1">VEHICLE</p>
-                  <p className="text-white font-bold">KDL 890X</p>
+                  <p className="text-white font-bold">OFFICIAL JAGUAR</p>
                </div>
             </div>
 

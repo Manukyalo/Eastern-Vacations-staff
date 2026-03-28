@@ -1,9 +1,6 @@
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import LocationEngine from '../engine/LocationEngine';
-import { db } from '../firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
+import LocationEngine from '../engine/LocationEngine';
 
 const LocationContext = createContext();
 
@@ -13,38 +10,19 @@ export const LocationProvider = ({ children }) => {
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
-    // Only track if safari driver and approved
-    if (role === 'safari_driver' && isApproved && currentUser) {
+    // track for both roles if approved
+    const isDriver = role === 'safari_driver' || role === 'driver';
+    if (isDriver && isApproved && currentUser) {
       LocationEngine.start(currentUser.uid, 'active', async (update) => {
         setCurrentLocation(update);
         setIsTracking(true); // Call inside callback
-        
-        // Push to Firestore
-        try {
-          const locRef = doc(db, 'driverLocations', currentUser.uid);
-          await updateDoc(locRef, {
-            ...update,
-            lastUpdated: serverTimestamp()
-          });
-        } catch (error) {
-          console.error('Failed to update location in Firestore', error);
-        }
       });
+      return () => LocationEngine.stop();
     }
-
-    return () => {
-      LocationEngine.stop();
-      setIsTracking(false);
-    };
-  }, [role, isApproved, currentUser]);
-
-  const value = {
-    currentLocation,
-    isTracking
-  };
+  }, [currentUser, role, isApproved]);
 
   return (
-    <LocationContext.Provider value={value}>
+    <LocationContext.Provider value={{ currentLocation, isTracking, role }}>
       {children}
     </LocationContext.Provider>
   );

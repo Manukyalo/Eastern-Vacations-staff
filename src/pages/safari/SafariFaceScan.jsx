@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import FaceScanner from '../../components/face/FaceScanner';
 import { auth, db } from '../../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 const SafariFaceScan = () => {
@@ -17,41 +17,56 @@ const SafariFaceScan = () => {
   }
 
   const handleCapture = async ({ descriptor, imageBlob }) => {
-    const toastId = toast.loading("Encrypting biometric data...");
+    const toastId = toast.loading("Finalizing Secure Expedition ID...");
     
     try {
+      // 1. Create Auth Account
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // Save face as Base64 in Firestore to avoid Storage costs
+      // 2. Link to Admin-created Personnel record
+      if (formData.driverId) {
+        await updateDoc(doc(db, 'drivers', formData.driverId), {
+          uid: user.uid,
+          status: 'Active',
+          faceDescriptor: descriptor,
+          registeredAt: serverTimestamp()
+        });
+      }
+
+      // 3. Create fast-lookup auth record
       await setDoc(doc(db, 'driverAuth', user.uid), {
         faceDescriptor: descriptor,
-        faceImageUrl: imageBlob, // Base64 from FaceEngine
+        faceImageUrl: imageBlob,
         role: 'safari_driver',
-        approved: false,
+        approved: false, // Default to false until admin confirms
         registeredAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
-        fcmToken: null,
-        loginAttempts: 0
+        driverDocId: formData.driverId
       });
 
-      toast.success("Expedition ID Setup Complete", { id: toastId });
+      toast.success("Registration successful!", { id: toastId });
       navigate('/safari/pending');
     } catch (error) {
-      toast.error(error.message, { id: toastId });
+      console.error("Registration error:", error);
+      toast.error(error.message || "Failed to finalize registration", { id: toastId });
     }
   };
 
   return (
     <div className="min-h-screen bg-primary-dark p-6 flex flex-col">
-      <div className="mb-12 text-center mt-12">
-        <h2 className="text-2xl font-heading font-black text-white px-8">
-          EXPEDITION <span className="text-accent-green uppercase tracking-tight">Biometric ID</span>
+      <div className="mb-8 text-center mt-8">
+        <h2 className="text-xl font-heading font-black text-white uppercase tracking-widest">
+          Expedition <span className="text-accent-green">Identity</span>
         </h2>
-        <div className="w-12 h-1 bg-accent-green/30 mx-auto mt-4 rounded-full" />
+        <p className="text-text-muted text-xs mt-2">STEP 2 OF 3 — BIOMETRIC ID SETUP</p>
       </div>
 
       <FaceScanner onCapture={handleCapture} driverEmail={formData.email} />
+
+      <div className="mt-8 text-center text-text-muted text-xs px-8">
+        Authorized personnel only. Biometric data is used strictly for identity verification and park access logging.
+      </div>
     </div>
   );
 };

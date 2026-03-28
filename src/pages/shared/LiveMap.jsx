@@ -5,8 +5,8 @@ import { useLocation } from '../../context/LocationContext';
 import { Navigation, Map as MapIcon, Layers, Target, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// Note: Replace with actual token or use a placeholder
-mapboxgl.accessToken = 'pk.eyJ1IjoibWFudWt5YWxvIiwiYSI6ImNsemRhZ3ZoeTBiaXkyYnB5ZzB6ZHZ6ZHgifQ.placeholder';
+// Secured via environment variable
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 const LiveMap = () => {
   const navigate = useNavigate();

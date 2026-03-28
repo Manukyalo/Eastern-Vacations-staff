@@ -2,51 +2,52 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Send, User, ShieldCheck, ChevronLeft } from 'lucide-react';
+import { Send, ChevronLeft, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const Chat = ({ role = 'driver' }) => {
+const Chat = () => {
   const navigate = useNavigate();
-  const { currentUser, driverProfile } = useAuth();
+  const { currentUser, role } = useAuth();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const scrollRef = useRef();
 
   useEffect(() => {
-    if (!currentUser) return;
-    
     // In a real app, this would be a specific room or thread with admin
     const q = query(
       collection(db, 'messages'),
       orderBy('timestamp', 'asc')
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      setMessages(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMessages(msgs);
     });
 
-    return unsub;
-  }, [currentUser]);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    const messageData = {
-      text: newMessage,
-      senderId: currentUser.uid,
-      senderName: driverProfile?.name || 'Driver',
-      senderRole: role,
-      timestamp: serverTimestamp(),
-      type: 'text'
-    };
-
-    setNewMessage('');
     try {
+      const messageData = {
+        text: newMessage.trim(),
+        senderId: currentUser.uid,
+        senderName: currentUser.displayName || 'Staff Unit',
+        senderRole: role,
+        timestamp: serverTimestamp()
+      };
+
       await addDoc(collection(db, 'messages'), messageData);
-    } catch (err) {
-      console.error("Message send failed:", err);
+      setNewMessage('');
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
   };
 
@@ -54,7 +55,7 @@ const Chat = ({ role = 'driver' }) => {
   const textAccentColor = role === 'safari_driver' ? 'text-accent-green' : 'text-accent-gold';
 
   return (
-    <div className="flex flex-col h-screen bg-primary-dark max-w-md mx-auto relative overflow-hidden">
+    <div className="flex flex-col h-[100dvh] bg-primary-dark max-w-md mx-auto relative overflow-hidden">
       {/* Chat Header */}
       <header className="p-6 bg-surface border-b border-border flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center gap-4">
@@ -64,7 +65,7 @@ const Chat = ({ role = 'driver' }) => {
           <div>
             <h2 className="text-xl font-heading font-black text-white uppercase tracking-tight">HQ <span className={textAccentColor}>COMMS</span></h2>
             <p className="text-[10px] text-success font-black uppercase tracking-widest flex items-center gap-1">
-              <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+              <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
               Secure Channel Active
             </p>
           </div>
@@ -74,17 +75,17 @@ const Chat = ({ role = 'driver' }) => {
         </div>
       </header>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide pb-32">
+      {/* Messages Area - Flex-1 makes this take up all available space */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
         {messages.map((msg, idx) => {
           const isMe = msg.senderId === currentUser.uid;
           const isAdmin = msg.senderRole === 'admin';
 
           return (
-            <div key={idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+            <div key={idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
               <div className={`
-                max-w-[85%] p-4 rounded-[1.5rem] text-sm font-medium
-                ${isMe ? `${accentColor} text-primary-dark rounded-tr-none` : isAdmin ? 'bg-card border border-accent-gold/20 text-white rounded-tl-none' : 'bg-surface border border-border text-white rounded-tl-none'}
+                max-w-[85%] p-4 rounded-[1.5rem] text-sm font-medium shadow-sm
+                ${isMe ? `${accentColor} text-primary-dark rounded-tr-none shadow-${accentColor}/10` : isAdmin ? 'bg-card border border-accent-gold/20 text-white rounded-tl-none' : 'bg-surface border border-border text-white rounded-tl-none'}
               `}>
                 {msg.text}
               </div>
@@ -97,21 +98,22 @@ const Chat = ({ role = 'driver' }) => {
         <div ref={scrollRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-primary-dark via-primary-dark to-transparent pt-12">
+      {/* Input Area - Shrink-0 ensures it stays at the bottom */}
+      <div className="shrink-0 p-6 bg-surface border-t border-border">
         <form onSubmit={handleSendMessage} className="relative flex items-center gap-3">
            <input
              type="text"
              placeholder="Transmit message..."
              value={newMessage}
              onChange={(e) => setNewMessage(e.target.value)}
-             className="flex-1 bg-surface border border-border rounded-2xl py-5 px-6 text-white text-sm focus:border-accent-gold outline-none shadow-2xl"
+             className="flex-1 bg-card border border-border rounded-2xl py-4 px-6 text-white text-sm focus:border-accent-gold outline-none transition-all placeholder:text-white/20"
            />
            <button 
              type="submit"
-             className={`w-14 h-14 ${accentColor} rounded-2xl flex items-center justify-center text-primary-dark shadow-lg active:scale-95 transition-all shrink-0`}
+             disabled={!newMessage.trim()}
+             className={`w-12 h-12 ${accentColor} rounded-2xl flex items-center justify-center text-primary-dark shadow-lg active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:grayscale`}
            >
-             <Send size={24} />
+             <Send size={20} />
            </button>
         </form>
       </div>

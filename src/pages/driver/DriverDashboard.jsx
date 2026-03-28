@@ -2,14 +2,16 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useDriver } from '../../context/DriverContext';
-import { Bell, MapPin, Calendar, Clock, ChevronRight, User } from 'lucide-react';
+import { Bell, MapPin, Calendar, Clock, ChevronRight, User, Compass } from 'lucide-react';
 import StatusBadge from '../../components/ui/StatusBadge';
+import { useLocation } from '../../context/LocationContext';
 import { format, isValid } from 'date-fns';
 
 const DriverDashboard = () => {
   const navigate = useNavigate();
   const { driverProfile } = useAuth();
-  const { activeBookings, stats } = useDriver();
+  const { activeBookings } = useDriver();
+  const { currentLocation, isTracking } = useLocation();
 
   const today = new Date();
   const todaysTrip = activeBookings.find(b => {
@@ -20,7 +22,7 @@ const DriverDashboard = () => {
   });
 
   return (
-    <div className="p-6 pt-12 space-y-8 animate-in fade-in duration-700">
+    <div className="p-6 pt-12 space-y-8 animate-in fade-in duration-700 bg-primary-dark min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-start px-2">
         <div>
@@ -33,9 +35,9 @@ const DriverDashboard = () => {
         </div>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 overflow-hidden select-none">
-            <img src="/logo.png" alt="EV" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="EV" className="w-full h-full object-contain filter brightness-125" />
           </div>
-          <div className="w-10 h-10 bg-card border border-border rounded-xl flex items-center justify-center text-accent-gold">
+          <div className={`w-10 h-10 bg-card border border-border rounded-xl flex items-center justify-center ${isTracking ? 'text-accent-gold' : 'text-text-muted'}`}>
             <Bell size={20} />
           </div>
         </div>
@@ -43,29 +45,16 @@ const DriverDashboard = () => {
 
       {/* Greeting Section */}
       <div className="bg-card border border-border p-6 rounded-[2rem] relative overflow-hidden group">
-         <div className="absolute top-0 right-0 p-8 opacity-5">
-           <User size={120} />
+         <div className="absolute top-0 right-0 p-8 opacity-10 transition-transform duration-1000 ease-out" style={{ transform: `rotate(${currentLocation?.heading || 0}deg)` }}>
+           <Compass size={120} className="text-accent-gold" />
          </div>
          <div className="relative z-10">
            <h2 className="text-2xl font-bold text-white mb-1">Jambo, {driverProfile?.name?.split(' ')[0]}</h2>
-           <p className="text-text-muted text-sm">Unit status: <span className="text-success font-bold uppercase">Ready for Deployment</span></p>
-         </div>
-         
-         <div className="grid grid-cols-3 gap-4 mt-6">
-           <div 
-             onClick={() => navigate('/driver/porters')}
-             className="bg-surface p-3 rounded-2xl border border-border cursor-pointer active:scale-95 transition-all"
-           >
-             <p className="text-[10px] uppercase font-bold text-text-muted mb-1">Porters</p>
-             <p className="font-mono text-xl text-accent-gold">{(stats.portersCount || 0)}</p>
-           </div>
-           <div className="bg-surface p-3 rounded-2xl border border-border">
-             <p className="text-[10px] uppercase font-bold text-text-muted mb-1">Rating</p>
-             <p className="font-mono text-xl text-accent-gold">{stats.rating}</p>
-           </div>
-           <div className="bg-surface p-3 rounded-2xl border border-border">
-             <p className="text-[10px] uppercase font-bold text-text-muted mb-1">Alerts</p>
-             <p className="font-mono text-xl text-danger-red">0</p>
+           <div className="flex items-center gap-2 mt-2">
+             <div className={`w-2 h-2 rounded-full ${isTracking ? 'bg-success animate-pulse' : 'bg-danger-red'}`} />
+             <p className="text-text-muted text-[10px] font-black uppercase tracking-widest">
+               {isTracking ? 'Live Telemetry Active' : 'Signal Lost - Reconnecting'}
+             </p>
            </div>
          </div>
       </div>

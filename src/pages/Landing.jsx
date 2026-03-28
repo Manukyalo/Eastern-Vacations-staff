@@ -1,117 +1,77 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { Car, Map as MapIcon, ShieldCheck } from 'lucide-react';
 
 const Landing = () => {
   const navigate = useNavigate();
+  const { currentUser, role } = useAuth();
+
+  React.useEffect(() => {
+    if (currentUser && role) {
+      if (role === 'safari_driver') navigate('/safari/dashboard');
+      else if (role === 'driver') navigate('/driver/dashboard');
+    }
+  }, [currentUser, role, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden">
-      {/* Background Animated Elements */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-accent-green/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent-gold/5 rounded-full blur-[150px]" />
+      {/* Dynamic Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-accent-gold/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-green/10 rounded-full blur-[120px] animate-pulse delay-700" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md flex flex-col items-center justify-center p-8 space-y-12">
-      {/* Branding Logo */}
-      <div className="w-24 h-24 mb-4 select-none animate-in fade-in zoom-in duration-1000">
-        <img src="/logo.png" alt="Eastern Vacations" className="w-full h-full object-contain filter drop-shadow-2xl" />
-      </div>
-
-      <div className="text-center space-y-2">
-          <div className="w-20 h-20 bg-accent-gold rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(201,168,76,0.2)] mx-auto rotate-3 hover:rotate-0 transition-transform duration-500">
-            <ShieldCheck size={40} className="text-primary-dark" />
+      {/* Main Content */}
+      <div className="max-w-md w-full space-y-12 text-center">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          <div className="inline-block p-4 bg-card border border-border rounded-3xl mb-4 shadow-2xl">
+            <img src="/logo.png" alt="Eastern Vacations" className="h-12 w-auto filter brightness-110" />
           </div>
-          <h1 className="text-5xl font-heading font-black text-white uppercase tracking-tighter leading-none">
-            EASTERN <span className="text-accent-gold">VACATIONS</span>
-            <br />
-            <span className="text-3xl text-white/40">STAFF COMMAND</span>
+          <h1 className="text-4xl font-heading font-black text-white leading-tight uppercase tracking-tighter">
+            OPERATIONAL <span className="text-accent-gold">PORTAL</span>
           </h1>
-          <p className="text-text-muted font-medium tracking-[0.2em] uppercase text-xs">
-            Field Operations Portal
+          <p className="text-text-muted text-sm font-medium tracking-wide max-w-[280px] mx-auto uppercase">
+            Official logistics & dispatch system for staff personnel
           </p>
         </div>
 
-        {/* Role Selection Cards */}
-        <div className="grid gap-6 w-full">
-          {/* City Driver Card */}
-          <div 
+        <div className="grid grid-cols-1 gap-4 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+          <button 
             onClick={() => navigate('/driver/login')}
-            className="group relative bg-surface border border-border p-6 rounded-[24px] hover:border-accent-gold/50 transition-all duration-300 active:scale-[0.98] cursor-pointer overflow-hidden"
+            className="group relative bg-card border border-border p-8 rounded-[2.5rem] flex flex-col items-center gap-4 hover:border-accent-gold transition-all duration-500 overflow-hidden active:scale-95 shadow-2xl"
           >
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <Car size={120} />
+            <div className="absolute inset-0 bg-gradient-to-br from-accent-gold/0 to-accent-gold/[0.03] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="p-4 bg-accent-gold/10 rounded-2xl text-accent-gold group-hover:scale-110 group-hover:bg-accent-gold group-hover:text-primary-dark transition-all duration-500">
+              <Car size={32} />
             </div>
-            
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-accent-gold">
-                <Car size={24} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">City & Tour Driver</h3>
-                <p className="text-text-muted text-sm">Transfers, airport pickups, day tours</p>
-              </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-white uppercase tracking-tight">City Operations</h3>
+              <p className="text-[10px] text-text-muted font-bold tracking-widest uppercase">Airport & City Logistics</p>
             </div>
+          </button>
 
-            <div className="flex gap-3">
-              <button 
-                onClick={(e) => { e.stopPropagation(); navigate('/driver/login'); }}
-                className="flex-1 bg-accent-gold text-primary-dark font-bold py-3 rounded-xl text-sm"
-              >
-                Login
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); navigate('/driver/register'); }}
-                className="flex-1 bg-white/5 text-white font-bold py-3 rounded-xl text-sm border border-white/10"
-              >
-                Register
-              </button>
-            </div>
-          </div>
-
-          {/* Safari Driver Card */}
-          <div 
+          <button 
             onClick={() => navigate('/safari/login')}
-            className="group relative bg-card border border-accent-green/20 p-6 rounded-[24px] hover:border-accent-green/50 transition-all duration-300 active:scale-[0.98] cursor-pointer overflow-hidden"
+            className="group relative bg-card border border-border p-8 rounded-[2.5rem] flex flex-col items-center gap-4 hover:border-accent-green transition-all duration-500 overflow-hidden active:scale-95 shadow-2xl"
           >
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <MapIcon size={120} />
+            <div className="absolute inset-0 bg-gradient-to-br from-accent-green/0 to-accent-green/[0.03] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="p-4 bg-accent-green/10 rounded-2xl text-accent-green group-hover:scale-110 group-hover:bg-accent-green group-hover:text-primary-dark transition-all duration-500">
+              <MapIcon size={32} />
             </div>
-
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-accent-green/20 rounded-xl flex items-center justify-center text-accent-green">
-                <MapIcon size={24} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Safari Driver</h3>
-                <p className="text-text-muted text-sm">Expeditions, national parks, tracking</p>
-              </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-white uppercase tracking-tight">Safari Expedition</h3>
+              <p className="text-[10px] text-text-muted font-bold tracking-widest uppercase">Parks & Wilderness Tours</p>
             </div>
-
-            <div className="flex gap-3">
-              <button 
-                onClick={(e) => { e.stopPropagation(); navigate('/safari/login'); }}
-                className="flex-1 bg-accent-green text-white font-bold py-3 rounded-xl text-sm shadow-[0_4px_15px_rgba(45,106,79,0.3)]"
-              >
-                Login
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); navigate('/safari/register'); }}
-                className="flex-1 bg-white/5 text-white font-bold py-3 rounded-xl text-sm border border-white/10"
-              >
-                Register
-              </button>
-            </div>
-          </div>
+          </button>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-12 text-center opacity-40">
-          <p className="text-[10px] uppercase tracking-widest font-bold">
-            © 2025 Eastern Vacations — Secure Field Portal v1.0
-          </p>
-        </footer>
+        <div className="flex items-center justify-center gap-6 pt-8 animate-in fade-in duration-1000 delay-700">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">
+            <ShieldCheck size={14} className="text-success" />
+            Secured Access
+          </div>
+        </div>
       </div>
     </div>
   );

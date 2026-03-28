@@ -37,9 +37,15 @@ const SafariRegister = () => {
       
       if (querySnapshot.empty) {
         setIsVerifying(false);
-        return toast.error("Safari driver details not found for: " + cleanEmail + ". Contact office.");
+        return toast.error("Expedition record not found. Contact safari headquarters.");
       }
 
+      const driverDoc = querySnapshot.docs[0];
+      setFormData(prev => ({ 
+        ...prev, 
+        driverId: driverDoc.id,
+        fullName: driverDoc.data().name || prev.fullName
+      }));
       setStep(2);
     } catch (error) {
       console.error("Verification error:", error);
@@ -69,7 +75,7 @@ const SafariRegister = () => {
               <input
                 type="text"
                 name="fullName"
-                placeholder="Full Name"
+                placeholder="Full Name as per ID"
                 required
                 value={formData.fullName}
                 onChange={handleInputChange}
