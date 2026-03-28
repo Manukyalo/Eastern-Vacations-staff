@@ -35,7 +35,11 @@ service cloud.firestore {
     // UPDATED: Allow authorized users to link their newly created UID to their personnel record
     match /drivers/{driverId} {
       allow read: if true; 
-      allow write: if isAdmin() || (isAuthenticated() && request.auth.token.email == resource.data.email);
+      allow write: if isAdmin() || (isAuthenticated() && (
+        request.auth.token.email == resource.data.email || 
+        resource.data.uid == request.auth.uid ||
+        !('uid' in resource.data)
+      ));
     }
 
     match /packages/{packageId} {
@@ -55,7 +59,7 @@ service cloud.firestore {
     // UPDATED: Allow authenticated creation for own UID
     match /driverAuth/{driverId} {
       allow read: if isAdmin() || isOwner(driverId);
-      allow create: if isAuthenticated() && request.auth.uid == driverId; 
+      allow create: if isAuthenticated(); 
       allow update: if isAdmin() || isOwner(driverId);
       allow delete: if isAdmin();
     }

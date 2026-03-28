@@ -66,7 +66,9 @@ const SafariFaceScan = () => {
       toast.success("Registration successful!", { id: toastId });
       navigate('/safari/pending');
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error("🔴 Registration Critical Failure:", error);
+      console.error("Code:", error.code);
+      console.error("Message:", error.message);
       
       if (user) {
         try {
@@ -77,7 +79,11 @@ const SafariFaceScan = () => {
         }
       }
       
-      toast.error(error.message || "Failed to finalize registration", { id: toastId });
+      const friendlyMessage = error.code === 'permission-denied' 
+        ? "Access Denied: Please contact admin to verify your personnel record exists and has matching email."
+        : error.message || "Failed to finalize registration";
+
+      toast.error(friendlyMessage, { id: toastId, duration: 6000 });
     }
   };
 
