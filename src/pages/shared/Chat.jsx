@@ -12,6 +12,7 @@ const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [sending, setSending] = useState(false);
   const scrollRef = useRef();
 
   const driverId = currentUser?.uid;
@@ -51,12 +52,16 @@ const Chat = () => {
   }, [messages]);
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !driverId) return;
+    if (e) e.preventDefault();
+    const text = newMessage.trim();
+    if (!text || !driverId || sending) return;
 
     try {
+      setSending(true);
+      setNewMessage(''); // Clear immediately for responsiveness
+
       const messageData = {
-        text: newMessage.trim(),
+        text: text,
         senderId: driverId,
         senderName: driverProfile?.name || currentUser?.displayName || 'Staff Unit',
         senderRole: role || 'driver',
@@ -66,35 +71,54 @@ const Chat = () => {
       };
 
       // 1. Add message to driver's subcollection
-      await addDoc(collection(db, chatPath), messageData);
+      const messagesRef = collection(db, 'driverMessages', driverId, 'messages');
+      await addDoc(messagesRef, messageData);
 
-      // 2. Update the main chat document for admin's list (last message, timestamp, unread count)
+      // 2. Update the main chat summary for admin list
       const chatRef = doc(db, 'driverMessages', driverId);
       await updateDoc(chatRef, {
-        lastMessage: newMessage.trim(),
+        lastMessage: text,
         lastTimestamp: serverTimestamp(),
         driverName: driverProfile?.name || 'Staff Unit',
         driverRole: role || 'driver',
-        unreadCount: (messages.filter(m => m.senderRole === 'admin' && !m.read).length || 0) + 1, // This is simplified, admin side handles unread count better
         updatedAt: serverTimestamp()
-      }).catch(async (err) => {
-        // If document doesn't exist, create it (not handled by updateDoc)
-        // This is a safety for first-time chats
+      }).catch(async () => {
         const { setDoc } = await import('firebase/firestore');
         await setDoc(chatRef, {
             driverId: driverId,
             driverName: driverProfile?.name || 'Staff Unit',
             driverRole: role || 'driver',
-            lastMessage: newMessage.trim(),
+            lastMessage: text,
             lastTimestamp: serverTimestamp(),
             updatedAt: serverTimestamp()
-        });
+        }, { merge: true });
       });
 
-      setNewMessage('');
+      // 3. Notify Admin
+      await addDoc(collection(db, 'notifications'), {
+        title: `💬 ${driverProfile?.name || 'Driver'}`,
+        message: text.substring(0, 100),
+        type: 'INFO',
+        targetRole: 'admin',
+        date: serverTimestamp(),
+        read: false,
+        driverId: driverId,
+        driverName: driverProfile?.name || 'Driver'
+      });
+
     } catch (error) {
-      console.error("Transmission Error:", error);
-      toast.error("Signal failed. Retrying...");
+      console.error("Message Transmission Error:", error);
+      setNewMessage(text); // Restore text on failure
+      
+      if (error.code === 'permission-denied') {
+        toast.error("Security blocks: Message not transmitted.");
+      } else if (!navigator.onLine) {
+        toast.error("Network offline. Message held in cache.");
+      } else {
+        toast.error("Failed to transmit message.");
+      }
+    } finally {
+      setSending(false);
     }
   };
 
@@ -205,13 +229,13 @@ const Chat = () => {
              onChange={(e) => setNewMessage(e.target.value)}
              className="flex-1 bg-[#0A0F0D] border border-white/10 rounded-2xl py-5 pl-12 pr-6 text-white text-sm focus:border-accent-gold outline-none transition-all placeholder:text-white/10 font-bold"
            />
-           <button 
-             type="submit"
-             disabled={!newMessage.trim()}
-             className={`w-14 h-14 ${accentColor} rounded-2xl flex items-center justify-center text-[#0A0F0D] shadow-[0_10px_25px_rgba(0,0,0,0.3)] active:scale-90 transition-all shrink-0 disabled:opacity-20 disabled:grayscale`}
-           >
-             <Send size={24} />
-           </button>
+            <button 
+              type="submit"
+              disabled={!newMessage.trim() || sending}
+              className={`w-14 h-14 ${accentColor} rounded-2xl flex items-center justify-center text-[#0A0F0D] shadow-[0_10px_25px_rgba(0,0,0,0.3)] active:scale-90 transition-all shrink-0 disabled:opacity-20 disabled:grayscale`}
+            >
+              {sending ? <div className="w-6 h-6 border-2 border-[#0A0F0D]/30 border-t-[#0A0F0D] rounded-full animate-spin" /> : <Send size={24} />}
+            </button>
         </form>
       </div>
     </div>
