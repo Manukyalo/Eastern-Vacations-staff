@@ -12,6 +12,7 @@ import DriverRegister from './pages/driver/DriverRegister';
 import DriverFaceScan from './pages/driver/DriverFaceScan';
 import DriverPendingApproval from './pages/driver/DriverPendingApproval';
 import DriverDashboard from './pages/driver/DriverDashboard';
+import PorterDashboard from './pages/driver/PorterDashboard';
 import SafariLogin from './pages/safari/SafariLogin';
 import SafariRegister from './pages/safari/SafariRegister';
 import SafariFaceScan from './pages/safari/SafariFaceScan';
@@ -35,16 +36,20 @@ import LiveMap from './pages/shared/LiveMap';
 // Components
 import BottomNav from './components/ui/BottomNav';
 
-const ProtectedRoute = ({ children, allowedRole }) => {
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, role, isApproved, isLoading } = useAuth();
 
   if (isLoading) return <div className="h-screen flex items-center justify-center bg-primary-dark">
     <div className="skeleton w-32 h-1 rounded-full" />
   </div>;
   if (!currentUser) return <Navigate to="/" />;
-  if (allowedRole && role !== allowedRole) return <Navigate to="/" />;
+  
+  const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  if (allowedRoles && !rolesArray.includes(role)) return <Navigate to="/" />;
+  
   if (!isApproved && window.location.pathname.indexOf('pending') === -1) {
-    return <Navigate to={role === 'safari_driver' ? '/safari/pending' : '/driver/pending'} />;
+    const redirectPath = role === 'safari_driver' ? '/safari/pending' : '/driver/pending';
+    return <Navigate to={redirectPath} />;
   }
 
   return children;
@@ -58,22 +63,27 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<Landing />} />
         
-        {/* Driver Routes */}
+        {/* Driver/Porter Shared Routes */}
         <Route path="/driver/login" element={<DriverLogin />} />
         <Route path="/driver/register" element={<DriverRegister />} />
         <Route path="/driver/face-scan" element={<DriverFaceScan />} />
         <Route path="/driver/pending" element={
-          <ProtectedRoute allowedRole="driver">
+          <ProtectedRoute allowedRoles={['driver', 'porter', 'tour_guide']}>
             <DriverPendingApproval />
           </ProtectedRoute>
         } />
         <Route path="/driver/dashboard" element={
-          <ProtectedRoute allowedRole="driver">
+          <ProtectedRoute allowedRoles="driver">
             <DriverDashboard />
           </ProtectedRoute>
         } />
+        <Route path="/porter/dashboard" element={
+          <ProtectedRoute allowedRoles="porter">
+            <PorterDashboard />
+          </ProtectedRoute>
+        } />
         <Route path="/driver/trips" element={
-          <ProtectedRoute allowedRole="driver">
+          <ProtectedRoute allowedRoles="driver">
             <DriverTrips />
           </ProtectedRoute>
         } />

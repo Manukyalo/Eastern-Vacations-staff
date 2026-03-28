@@ -14,12 +14,18 @@ const DriverRegister = () => {
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'driver' // Default
   });
   const [isVerifying, setIsVerifying] = useState(false);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleRoleSelect = (selectedRole) => {
+    setFormData(prev => ({ ...prev, role: selectedRole }));
+    setStep(1); // Proceed to credentials
   };
 
   const handleStep1Submit = async (e) => {
@@ -37,7 +43,7 @@ const DriverRegister = () => {
       
       const driverDoc = querySnapshot.empty ? null : querySnapshot.docs[0];
       
-      // Merge with system data if exists, otherwise proceed as new driver
+      // Merge with system data if exists, otherwise proceed as new personnel
       setFormData(prev => ({ 
         ...prev, 
         driverId: driverDoc?.id || null,
@@ -55,31 +61,62 @@ const DriverRegister = () => {
     }
   };
 
+  const roles = [
+    { id: 'driver', title: 'Driver', icon: <Car size={24} />, desc: 'Standard City & Fleet Operations' },
+    { id: 'porter', title: 'Porter', icon: <User size={24} />, desc: 'Baggage & Logistics Support' },
+    { id: 'tour_guide', title: 'Tour Guide', icon: <ArrowRight size={24} />, desc: 'Urban & City Excursions' }
+  ];
+
   return (
     <div className="min-h-screen pt-12 pb-24 px-6 bg-primary-dark">
       <div className="max-w-md mx-auto">
         <div className="mb-8 text-center">
           <div className="w-12 h-12 bg-accent-gold/20 rounded-xl flex items-center justify-center text-accent-gold mx-auto mb-4">
-            <Car size={24} />
+            <ShieldCheck size={24} />
           </div>
           <h2 className="text-2xl font-heading font-black text-white mb-2 uppercase tracking-tight">
             City <span className="text-accent-gold">Operations</span> Portal
           </h2>
-          <p className="text-[10px] text-text-muted uppercase tracking-[0.3em] font-bold">Driver Registration</p>
+          <p className="text-[10px] text-text-muted uppercase tracking-[0.3em] font-bold">Personnel Registration</p>
         </div>
 
         {step === 1 && (
-          <form onSubmit={handleStep1Submit} className="space-y-4">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <h3 className="text-center text-white font-bold text-sm uppercase tracking-widest mb-2">Select Your Professional Role</h3>
+             <div className="grid grid-cols-1 gap-4">
+               {roles.map((r) => (
+                 <button
+                  key={r.id}
+                  onClick={() => handleRoleSelect(r.id)}
+                  className={`relative p-6 rounded-3xl border text-left transition-all duration-300 group ${formData.role === r.id ? 'bg-accent-gold border-accent-gold shadow-lg shadow-accent-gold/20' : 'bg-surface border-border hover:border-accent-gold/50'}`}
+                 >
+                   <div className="flex items-center gap-4">
+                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${formData.role === r.id ? 'bg-primary-dark text-accent-gold' : 'bg-card text-accent-gold group-hover:bg-accent-gold/20'}`}>
+                        {r.icon}
+                     </div>
+                     <div>
+                       <h4 className={`font-black uppercase tracking-tight ${formData.role === r.id ? 'text-primary-dark' : 'text-white'}`}>{r.title}</h4>
+                       <p className={`text-[10px] font-bold uppercase tracking-widest ${formData.role === r.id ? 'text-primary-dark/60' : 'text-text-muted'}`}>{r.desc}</p>
+                     </div>
+                   </div>
+                 </button>
+               ))}
+             </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <form onSubmit={handleStep1Submit} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-gold" size={20} />
               <input
                 type="text"
                 name="fullName"
-                placeholder="Full Name as per ID"
+                placeholder="FULL NAME"
                 required
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none"
+                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all font-bold uppercase tracking-widest text-[10px]"
               />
             </div>
 
@@ -88,11 +125,11 @@ const DriverRegister = () => {
               <input
                 type="email"
                 name="email"
-                placeholder="Personal Email"
+                placeholder="EMAIL ADDRESS"
                 required
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none"
+                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all font-bold uppercase tracking-widest text-[10px]"
               />
             </div>
 
@@ -101,11 +138,11 @@ const DriverRegister = () => {
               <input
                 type="tel"
                 name="phone"
-                placeholder="Phone Number"
+                placeholder="PHONE NUMBER"
                 required
                 value={formData.phone}
                 onChange={handleInputChange}
-                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none"
+                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all font-bold uppercase tracking-widest text-[10px]"
               />
             </div>
 
@@ -114,18 +151,18 @@ const DriverRegister = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder="Secure Password"
+                placeholder="CREATE PASSWORD"
                 required
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-12 text-white focus:border-accent-gold outline-none"
+                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all font-bold uppercase tracking-widest text-[10px]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-accent-gold transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
 
@@ -134,33 +171,38 @@ const DriverRegister = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 name="confirmPassword"
-                placeholder="Confirm Password"
+                placeholder="CONFIRM PASSWORD"
                 required
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-12 text-white focus:border-accent-gold outline-none"
+                className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all font-bold uppercase tracking-widest text-[10px]"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-accent-gold transition-colors"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
             </div>
 
-            <button
-              type="submit"
-              disabled={isVerifying}
-              className="w-full bg-accent-gold text-primary-dark font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all mt-6"
-            >
-              {isVerifying ? 'Verifying Credentials...' : 'Verification Complete'}
-              <ArrowRight size={20} />
-            </button>
+            <div className="pt-4 flex gap-4">
+               <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="w-1/3 border border-border text-white font-black py-4 rounded-xl flex items-center justify-center active:scale-95 transition-all text-[10px] uppercase tracking-widest"
+               >
+                 Back
+               </button>
+               <button
+                type="submit"
+                disabled={isVerifying}
+                className="flex-1 bg-accent-gold text-primary-dark font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 text-[10px] uppercase tracking-widest"
+              >
+                {isVerifying ? (
+                  <div className="w-5 h-5 border-2 border-primary-dark/30 border-t-primary-dark rounded-full animate-spin" />
+                ) : (
+                  <>Continue <ArrowRight size={18} /></>
+                )}
+              </button>
+            </div>
           </form>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <div className="animate-in slide-in-from-right-4 duration-500">
              <div className="bg-card border border-accent-gold/20 p-6 rounded-3xl mb-8">
               <div className="flex items-center gap-3 mb-4">

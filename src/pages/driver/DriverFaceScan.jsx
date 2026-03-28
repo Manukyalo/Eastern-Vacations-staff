@@ -32,7 +32,7 @@ const DriverFaceScan = () => {
         personalEmail: user.email,
         faceDescriptor: descriptor,
         faceImageUrl: imageBlob, // Base64 Data URL (free on Spark Plan)
-        role: 'driver',
+        role: formData.role || 'driver',
         approved: false,
         registeredAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
@@ -55,8 +55,8 @@ const DriverFaceScan = () => {
 
       // Step 7: Write to notifications collection
       await addDoc(collection(db, 'notifications'), {
-        title: 'New Driver Registration — Approval Required',
-        message: `${formData.fullName} (driver) has completed face registration and awaits approval.`,
+        title: `New Personnel Registration (${formData.role}) — Approval Required`,
+        message: `${formData.fullName} (${formData.role}) has completed face registration and awaits approval.`,
         type: 'WARNING',
         targetRole: 'admin',
         date: serverTimestamp(),
@@ -87,7 +87,7 @@ const DriverFaceScan = () => {
         <h2 className="text-xl font-heading font-black text-white uppercase tracking-widest">
           Face <span className="text-accent-gold">Verification</span>
         </h2>
-        <p className="text-text-muted text-xs mt-2">STEP 2 OF 3 — BIOMETRIC ID SETUP</p>
+        <p className="text-text-muted text-xs mt-2 uppercase tracking-widest font-black">STEP 3 OF 3 — BIOMETRIC ID SETUP</p>
       </div>
 
       <FaceScanner onCapture={handleCapture} driverEmail={formData.email} />
