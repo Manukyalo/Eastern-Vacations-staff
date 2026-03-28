@@ -6,11 +6,14 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
+import FaceVerifier from '../../components/face/FaceVerifier';
+
 const DriverLogin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
- // 1: Credentials, 2: Face (handled by FaceVerifier later)
+  const [loginStep, setLoginStep] = useState(1); // 1: Credentials, 2: Face
+  const [storedData, setStoredData] = useState(null);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -40,16 +43,25 @@ const DriverLogin = () => {
         return;
       }
 
-      // Proceed to Face Verification (Step 2)
-      // For now, redirecting to dashboard for demo if approved
-      // In full implementation, this opens FaceVerifier
-      navigate('/driver/dashboard');
+      // Step 2: Biometric Verification
+      setStoredData(data);
+      setLoginStep(2);
+      toast.success("Identity recognized. Preparing Biometric Scan.");
     } catch (error) {
       console.error("Login error:", error);
       toast.error("Invalid email or password");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFaceSuccess = () => {
+    toast.success("Welcome back, Captain!");
+    navigate('/driver/dashboard');
+  };
+
+  const handleFaceFail = () => {
+    toast.error("Biometric match failed. Please try again.");
   };
 
   return (
@@ -60,65 +72,89 @@ const DriverLogin = () => {
       </div>
 
       <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-accent-gold/10 border border-accent-gold/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <LogIn size={32} className="text-accent-gold" />
-          </div>
-          <h2 className="text-3xl font-heading font-black text-white mb-2">FIELD LOGIN</h2>
-          <p className="text-text-muted text-sm uppercase tracking-widest font-bold">City & Tour Operations</p>
-        </div>
+        {loginStep === 1 ? (
+          <>
+            <div className="text-center mb-10">
+              <div className="w-16 h-16 bg-accent-gold/10 border border-accent-gold/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <LogIn size={32} className="text-accent-gold" />
+              </div>
+              <h2 className="text-3xl font-heading font-black text-white mb-2">FIELD LOGIN</h2>
+              <p className="text-text-muted text-sm uppercase tracking-widest font-bold">City & Tour Operations</p>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-gold/50" size={20} />
-            <input
-              type="email"
-              name="email"
-              placeholder="Personal Email"
-              required
-              value={formData.email}
-              onChange={handleInputChange}
-              className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all"
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-gold/50" size={20} />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Personal Email"
+                  required
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all"
+                />
+              </div>
+
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-gold/50" size={20} />
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="System Password"
+                  required
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-accent-gold text-primary-dark font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 group active:scale-95 transition-all mt-4"
+              >
+                {isLoading ? 'Processing...' : 'Secure Login'}
+                {!isLoading && <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />}
+              </button>
+            </form>
+
+            <div className="mt-8 pt-8 border-t border-border flex flex-col gap-4">
+              <button 
+                onClick={() => navigate('/driver/register')}
+                className="w-full py-4 text-text-muted flex items-center justify-center gap-2 hover:text-white transition-colors"
+              >
+                <UserPlus size={18} />
+                <span>Not registered? Create account</span>
+              </button>
+              
+              <div className="flex items-center gap-2 justify-center text-[10px] text-text-muted font-bold tracking-widest uppercase opacity-40">
+                <ShieldCheck size={12} />
+                Protected by Biometric Security
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="animate-in zoom-in-95 duration-500">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-heading font-black text-white mb-2 uppercase tracking-tight">BIOMETRIC AUTH</h2>
+              <p className="text-safari-gold text-xs font-black uppercase tracking-[0.2em]">Verifying Personnel Identity</p>
+            </div>
+            
+            <FaceVerifier 
+              storedDescriptor={storedData?.faceDescriptor}
+              onSuccess={handleFaceSuccess}
+              onFail={handleFaceFail}
             />
-          </div>
 
-          <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-gold/50" size={20} />
-            <input
-              type="password"
-              name="password"
-              placeholder="System Password"
-              required
-              value={formData.password}
-              onChange={handleInputChange}
-              className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all"
-            />
+            <button
+              onClick={() => setLoginStep(1)}
+              className="w-full mt-4 text-white/40 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors"
+            >
+              Back to Credentials
+            </button>
           </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-accent-gold text-primary-dark font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 group active:scale-95 transition-all mt-4"
-          >
-            {isLoading ? 'Processing...' : 'Secure Login'}
-            {!isLoading && <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />}
-          </button>
-        </form>
-
-        <div className="mt-8 pt-8 border-t border-border flex flex-col gap-4">
-          <button 
-            onClick={() => navigate('/driver/register')}
-            className="w-full py-4 text-text-muted flex items-center justify-center gap-2 hover:text-white transition-colors"
-          >
-            <UserPlus size={18} />
-            <span>Not registered? Create account</span>
-          </button>
-          
-          <div className="flex items-center gap-2 justify-center text-[10px] text-text-muted font-bold tracking-widest uppercase opacity-40">
-            <ShieldCheck size={12} />
-            Protected by Biometric Security
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

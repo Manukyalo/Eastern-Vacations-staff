@@ -1,125 +1,159 @@
-import * as faceapi from 'face-api.js';
+import * as faceapi from '@vladmandic/face-api'
 
 class FaceEngine {
   constructor() {
-    this.modelsLoaded = false;
-    this.loadingPromise = null;
+    this.isLoaded = false
+    this.isLoading = false
+    this.detectionInterval = null
   }
 
-  async init() {
-    if (this.modelsLoaded) return;
-    if (this.loadingPromise) return this.loadingPromise;
-
-    // Check if models were already loaded in this session by FaceScanner
-    if (sessionStorage.getItem('faceModelsLoaded') === 'true') {
-      this.modelsLoaded = true;
-      return Promise.resolve();
-    }
-
-    this.loadingPromise = (async () => {
-      const CDN_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
-      
-      const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('timeout')), 30000)
-      );
-
-      try {
-        console.log('FaceEngine: Initializing models from CDN...');
-        
-        await Promise.race([
-          Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri(CDN_URL),
-            faceapi.nets.faceLandmark68Net.loadFromUri(CDN_URL),
-            faceapi.nets.faceRecognitionNet.loadFromUri(CDN_URL)
-          ]),
-          timeout
-        ]);
-
-        this.modelsLoaded = true;
-        sessionStorage.setItem('faceModelsLoaded', 'true');
-        console.log('FaceEngine: Biometric engine ready via CDN');
-      } catch (err) {
-        this.loadingPromise = null;
-        console.error('FaceEngine: Loading failed', err);
-        throw new Error(err.message === 'timeout' 
-          ? 'Biometric engine timed out. Check connection.' 
-          : 'Failed to load biometric models.');
-      }
-    })();
-
-    return this.loadingPromise;
-  }
-
-  /**
-   * Registration now happens directly in FaceScanner.jsx for robustness.
-   * This method remains for backward compatibility or future use,
-   * now updated to follow the 224 input standard.
-   */
-  async registerFace(videoElement) {
-    await this.init();
+  async loadModels(onProgress) {
+    if (this.isLoaded) return true
+    if (this.isLoading) return false
     
-    // Passing videoElement directly as per CRITICAL RULES
-    const detection = await faceapi
-      .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({ 
-        inputSize: 224,
-        scoreThreshold: 0.3 
-      }))
-      .withFaceLandmarks()
-      .withFaceDescriptor();
-
-    if (!detection) throw new Error('NO_FACE_DETECTED');
-
-    // Simple capture for the Base64 image
-    const canvas = document.createElement('canvas');
-    canvas.width = videoElement.videoWidth;
-    canvas.height = videoElement.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoElement, 0, 0);
+    this.isLoading = true
+    const CDN = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'
     
-    return {
-      descriptor: Array.from(detection.descriptor),
-      imageBlob: canvas.toDataURL('image/jpeg', 0.8)
-    };
-  }
-
-  /**
-   * Verifies a live face against a stored descriptor.
-   * Updated to use inputSize: 224 to match the new registration standard.
-   */
-  async verifyFace(videoElement, storedDescriptorArray) {
-    await this.init();
-
     try {
-      const storedDescriptor = new Float32Array(storedDescriptorArray);
+      onProgress?.('Loading face detector...')
+      await faceapi.nets.tinyFaceDetector
+        .loadFromUri(CDN)
       
-      // Pass videoElement DIRECTLY to fix tensor shape errors
-      const detection = await faceapi
-        .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({ 
-          inputSize: 224,
-          scoreThreshold: 0.3 
-        }))
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
-      if (!detection) {
-        return { match: false, error: 'NO_FACE_DETECTED' };
-      }
-
-      const distance = faceapi.euclideanDistance(detection.descriptor, storedDescriptor);
-      console.log(`FaceEngine: Verification distance: ${distance}`);
-
-      // Threshold: < 0.6 is generally a good match for face-api
-      if (distance < 0.6) {
-        return { match: true, confidence: 1 - distance };
-      } else {
-        return { match: false, distance };
-      }
-    } catch (error) {
-      console.error('FaceEngine: Verification failed', error);
-      throw error;
+      onProgress?.('Loading landmark model...')
+      await faceapi.nets.faceLandmark68Net
+        .loadFromUri(CDN)
+      
+      onProgress?.('Loading recognition model...')
+      await faceapi.nets.faceRecognitionNet
+        .loadFromUri(CDN)
+      
+      this.isLoaded = true
+      this.isLoading = false
+      onProgress?.('Ready')
+      return true
+    } catch (err) {
+      this.isLoading = false
+      throw new Error('Model load failed: ' + err.message)
     }
+  }
+
+  async detectFace(videoElement) {
+    if (!this.isLoaded) throw new Error('Models not loaded')
+    if (!videoElement) throw new Error('No video element')
+    
+    const options = new faceapi.TinyFaceDetectorOptions({
+      inputSize: 224,
+      scoreThreshold: 0.3
+    })
+    
+    const result = await faceapi
+      .detectSingleFace(videoElement, options)
+      .withFaceLandmarks()
+      .withFaceDescriptor()
+    
+    return result || null
+  }
+
+  startContinuousDetection(videoElement, callbacks) {
+    const { 
+      onFaceDetected,    // face visible in frame
+      onNoFace,          // no face visible
+      onCapture,         // enough samples collected
+      onError
+    } = callbacks
+    
+    const samples = []
+    const REQUIRED_SAMPLES = 5
+    let consecutiveDetections = 0
+    
+    const detect = async () => {
+      try {
+        const result = await this.detectFace(videoElement)
+        
+        if (result) {
+          consecutiveDetections++
+          onFaceDetected?.(consecutiveDetections)
+          
+          // Only collect after 2 consecutive detections
+          // (filters out false positives)
+          if (consecutiveDetections >= 2) {
+            samples.push(result.descriptor)
+            
+            if (samples.length >= REQUIRED_SAMPLES) {
+              // Got enough samples — compute average
+              this.stopDetection()
+              const avgDescriptor = this
+                .averageDescriptors(samples)
+              onCapture?.(avgDescriptor)
+              return
+            }
+          }
+        } else {
+          consecutiveDetections = 0
+          onNoFace?.()
+        }
+      } catch (err) {
+        onError?.(err.message)
+      }
+    }
+    
+    // Run detection every 400ms — fast but not 
+    // overwhelming for mobile processors
+    this.detectionInterval = setInterval(detect, 400)
+  }
+
+  stopDetection() {
+    if (this.detectionInterval) {
+      clearInterval(this.detectionInterval)
+      this.detectionInterval = null
+    }
+  }
+
+  averageDescriptors(descriptors) {
+    const length = descriptors[0].length
+    const avg = new Float32Array(length)
+    descriptors.forEach(desc => {
+      desc.forEach((val, i) => { avg[i] += val })
+    })
+    avg.forEach((_, i) => { 
+      avg[i] = avg[i] / descriptors.length 
+    })
+    return avg
+  }
+
+  async verifyFace(videoElement, storedDescriptor) {
+    if (!this.isLoaded) throw new Error('Models not loaded')
+    
+    // Try up to 5 frames for verification
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const result = await this.detectFace(videoElement)
+      
+      if (result) {
+        const stored = new Float32Array(storedDescriptor)
+        const distance = faceapi.euclideanDistance(
+          result.descriptor, 
+          stored
+        )
+        
+        const confidence = Math.max(0, 
+          Math.round((1 - distance) * 100))
+        
+        if (distance < 0.5) {
+          return { match: true, confidence, distance }
+        } else if (distance < 0.6) {
+          // Uncertain — try again
+          await new Promise(r => setTimeout(r, 500))
+          continue
+        } else {
+          return { match: false, confidence, distance }
+        }
+      }
+      
+      await new Promise(r => setTimeout(r, 500))
+    }
+    
+    return { match: false, confidence: 0 }
   }
 }
 
-export default new FaceEngine();
-
+export default new FaceEngine()
