@@ -79,7 +79,8 @@ const Chat = () => {
         lastTimestamp: serverTimestamp(),
         driverName: driverProfile?.name || 'Staff Unit',
         driverRole: role || 'driver',
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        isDeleted: false
       }).catch(async () => {
         const { setDoc } = await import('firebase/firestore');
         await setDoc(chatRef, {
@@ -88,7 +89,8 @@ const Chat = () => {
             driverRole: role || 'driver',
             lastMessage: text,
             lastTimestamp: serverTimestamp(),
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp(),
+            isDeleted: false
         }, { merge: true });
       });
 
