@@ -65,6 +65,12 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     try {
       await signOut(auth);
+      // Explicit state clearing to prevent auto-login flickering
+      setDriverProfile(null);
+      setDriverAuth(null);
+      setRole(null);
+      setIsApproved(false);
+      setCurrentUser(null);
     } catch (error) {
       console.error('Logout failed', error);
     } finally {

@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { 
   User, LogOut, ShieldCheck, Map, Settings, ChevronRight, 
   Award, Shield, Calendar, Bell, Globe, Lock, History, 
@@ -47,10 +47,10 @@ const Profile = () => {
       
       // 2. Clear Online Status
       if (currentUser?.uid) {
-        await updateDoc(doc(db, 'driverLocations', currentUser.uid), {
+        await setDoc(doc(db, 'driverLocations', currentUser.uid), {
           isOnline: false,
           lastSeen: serverTimestamp()
-        });
+        }, { merge: true });
       }
 
       // 3. Sign Out
