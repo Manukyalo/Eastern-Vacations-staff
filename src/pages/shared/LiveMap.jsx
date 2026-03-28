@@ -63,10 +63,17 @@ const LiveMap = () => {
 
     // Render Static Layers
     map.current.on('load', () => {
-      // 1. Parks
+      // 1. Parks (Enhanced with Labels)
       KENYA_PARKS.forEach(park => {
         const pEl = document.createElement('div');
-        pEl.style.cssText = `width: 8px; height: 8px; border-radius: 50%; background: ${park.color}; border: 1.5px solid white; cursor: pointer;`;
+        pEl.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer;';
+        pEl.innerHTML = `
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: ${park.color}; border: 1.5px solid white;"></div>
+          <div style="background: rgba(17, 27, 21, 0.8); backdrop-filter: blur(4px); padding: 2px 8px; border-radius: 6px; border: 1px solid ${park.color}30; white-space: nowrap;">
+            <span style="color: white; font-size: 9px; font-weight: 800; text-transform: uppercase;">${park.name}</span>
+          </div>
+        `;
+
         const m = new maplibregl.Marker({ element: pEl })
           .setLngLat(park.center)
           .setPopup(new maplibregl.Popup({ offset: 10, closeButton: false }).setHTML(`
@@ -79,11 +86,18 @@ const LiveMap = () => {
         if (showParks) m.addTo(map.current);
       });
 
-      // 2. Lodges
+      // 2. Lodges (Enhanced with Labels)
       KENYA_LODGES.forEach(lodge => {
         const lEl = document.createElement('div');
-        lEl.innerHTML = lodge.type === 'tented_camp' ? '⛺' : '🏨';
-        lEl.style.cssText = 'font-size: 14px; cursor: pointer;';
+        const icon = lodge.type === 'tented_camp' ? '⛺' : '🏨';
+        lEl.style.cssText = 'display: flex; align-items: center; gap: 4px; cursor: pointer;';
+        lEl.innerHTML = `
+          <span style="font-size: 14px;">${icon}</span>
+          <div style="background: rgba(10, 10, 20, 0.8); backdrop-filter: blur(4px); padding: 2px 8px; border-radius: 6px; border: 1px solid #C9A84C30; white-space: nowrap;">
+            <span style="color: #C9A84C; font-size: 9px; font-weight: 800; text-transform: uppercase;">${lodge.name}</span>
+          </div>
+        `;
+
         const m = new maplibregl.Marker({ element: lEl })
           .setLngLat(lodge.center)
           .setPopup(new maplibregl.Popup({ offset: 10, closeButton: false }).setHTML(`
@@ -97,11 +111,17 @@ const LiveMap = () => {
         if (showLodges) m.addTo(map.current);
       });
 
-      // 3. Gates
+      // 3. Gates (Enhanced with Labels)
       KENYA_GATES.forEach(gate => {
         const gEl = document.createElement('div');
-        gEl.innerHTML = '🚧';
-        gEl.style.cssText = 'font-size: 13px; cursor: pointer;';
+        gEl.style.cssText = 'display: flex; align-items: center; gap: 4px; cursor: pointer;';
+        gEl.innerHTML = `
+          <span style="font-size: 14px;">🚧</span>
+          <div style="background: rgba(10, 20, 15, 0.8); backdrop-filter: blur(4px); padding: 2px 8px; border-radius: 6px; border: 1px solid #4ade8030; white-space: nowrap;">
+            <span style="color: #4ade80; font-size: 9px; font-weight: 800; text-transform: uppercase;">${gate.name}</span>
+          </div>
+        `;
+
         const m = new maplibregl.Marker({ element: gEl })
           .setLngLat(gate.center)
           .setPopup(new maplibregl.Popup({ offset: 10, closeButton: false }).setHTML(`
