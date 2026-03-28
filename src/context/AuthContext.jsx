@@ -66,10 +66,17 @@ export const AuthProvider = ({ children }) => {
     try {
       // 1. Explicitly set offline in Firestore before signing out
       if (currentUser) {
-        await setDoc(doc(db, 'driverLocations', currentUser.uid), {
-          isOnline: false,
-          lastUpdated: serverTimestamp()
-        }, { merge: true });
+        try {
+          await Promise.race([
+            setDoc(doc(db, 'driverLocations', currentUser.uid), {
+              isOnline: false,
+              lastUpdated: serverTimestamp()
+            }, { merge: true }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
+          ]);
+        } catch (e) {
+          console.log('Offline sync timeout', e);
+        }
       }
 
       // 2. Clear Auth State

@@ -45,12 +45,19 @@ const Profile = () => {
       // 1. Stop Tracking
       LocationEngine.stop();
       
-      // 2. Clear Online Status (Don't await to prevent hanging if offline)
+      // 2. Clear Online Status (Wait up to 2.5s to sync before auth token clears)
       if (currentUser?.uid) {
-        setDoc(doc(db, 'driverLocations', currentUser.uid), {
-          isOnline: false,
-          lastSeen: serverTimestamp()
-        }, { merge: true }).catch(console.error);
+        try {
+          await Promise.race([
+            setDoc(doc(db, 'driverLocations', currentUser.uid), {
+              isOnline: false,
+              lastSeen: serverTimestamp()
+            }, { merge: true }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
+          ]);
+        } catch (e) {
+          console.log('Offline status sync timeout', e);
+        }
       }
 
       // 3. Sign Out
