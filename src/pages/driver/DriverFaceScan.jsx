@@ -1,9 +1,10 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FaceScanner from '../../components/face/FaceScanner';
-import { auth, db } from '../../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db, storage } from '../../firebase';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
+import { doc, setDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
 
 const DriverFaceScan = () => {
@@ -18,28 +19,60 @@ const DriverFaceScan = () => {
 
   const handleCapture = async ({ descriptor, imageBlob }) => {
     const toastId = toast.loading("Finalizing registration...");
+    let user = null;
     
     try {
-      // 1. Create Auth Account
+      // Step 4: Create Firebase Auth account FIRST
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
+      user = userCredential.user;
 
-      // 2. Create driverAuth document (Image saved as Base64 to avoid Storage costs)
+      // Step 5: Upload face image to Firebase Storage
+      // NOW user is authenticated so Storage rules allow the upload
+      const storageRef = ref(storage, `driverFaces/${user.uid}/face.jpg`);
+      await uploadBytes(storageRef, imageBlob);
+      const faceImageUrl = await getDownloadURL(storageRef);
+
+      // Step 6: Write to Firestore driverAuth collection
+      // NOW user is authenticated so Firestore rules allow the write
       await setDoc(doc(db, 'driverAuth', user.uid), {
+        email: user.email,
         faceDescriptor: descriptor,
-        faceImageUrl: imageBlob, // Now contains Base64 string from FaceEngine
+        faceImageUrl: faceImageUrl,
         role: 'driver',
         approved: false,
         registeredAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
         fcmToken: null,
-        loginAttempts: 0
+        loginAttempts: 0,
+        lockedUntil: null
+      });
+
+      // Step 7: Write to notifications collection
+      await addDoc(collection(db, 'notifications'), {
+        title: 'New Driver Registration — Approval Required',
+        message: `${formData.fullName} (driver) has completed face registration and awaits approval.`,
+        type: 'WARNING',
+        targetRole: 'admin',
+        date: serverTimestamp(),
+        read: false
       });
 
       toast.success("Registration submitted!", { id: toastId });
+      // Step 8: Navigate to pending approval page
       navigate('/driver/pending');
     } catch (error) {
       console.error("Registration error:", error);
+      
+      // CRITICAL: Cleanup if anything fails after Auth account created
+      if (user) {
+        try {
+          await deleteUser(user);
+          console.log("Cleaned up stalled Auth account");
+        } catch (deleteError) {
+          console.error("Failed to cleanup stalled account:", deleteError);
+        }
+      }
+      
       toast.error(error.message || "Failed to finalize registration", { id: toastId });
     }
   };

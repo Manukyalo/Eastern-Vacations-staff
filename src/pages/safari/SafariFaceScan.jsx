@@ -1,9 +1,10 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FaceScanner from '../../components/face/FaceScanner';
-import { auth, db } from '../../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db, storage } from '../../firebase';
+import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
+import { doc, setDoc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
 
 const SafariFaceScan = () => {
@@ -18,13 +19,19 @@ const SafariFaceScan = () => {
 
   const handleCapture = async ({ descriptor, imageBlob }) => {
     const toastId = toast.loading("Finalizing Secure Expedition ID...");
+    let user = null;
     
     try {
-      // 1. Create Auth Account
+      // Step 4: Create Firebase Auth account FIRST
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
+      user = userCredential.user;
 
-      // 2. Link to Admin-created Personnel record
+      // Step 5: Upload face image to Firebase Storage
+      const storageRef = ref(storage, `driverFaces/${user.uid}/face.jpg`);
+      await uploadBytes(storageRef, imageBlob);
+      const faceImageUrl = await getDownloadURL(storageRef);
+
+      // Step 6a: Link to Admin-created Personnel record (Firestore)
       if (formData.driverId) {
         await updateDoc(doc(db, 'drivers', formData.driverId), {
           uid: user.uid,
@@ -34,21 +41,46 @@ const SafariFaceScan = () => {
         });
       }
 
-      // 3. Create fast-lookup auth record
+      // Step 6b: Create fast-lookup auth record (Firestore)
       await setDoc(doc(db, 'driverAuth', user.uid), {
+        email: user.email,
         faceDescriptor: descriptor,
-        faceImageUrl: imageBlob,
+        faceImageUrl: faceImageUrl,
         role: 'safari_driver',
         approved: false, // Default to false until admin confirms
         registeredAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
-        driverDocId: formData.driverId
+        driverDocId: formData.driverId,
+        loginAttempts: 0,
+        lockedUntil: null
+      });
+
+      // Step 7: Write to notifications collection
+      await addDoc(collection(db, 'notifications'), {
+        title: 'New Safari Registration — Approval Required',
+        message: `${formData.fullName} (safari) has completed biometric setup and awaits approval.`,
+        type: 'WARNING',
+        targetRole: 'admin',
+        date: serverTimestamp(),
+        read: false
       });
 
       toast.success("Registration successful!", { id: toastId });
+      // Step 8: Navigate to pending approval page
       navigate('/safari/pending');
     } catch (error) {
       console.error("Registration error:", error);
+      
+      // CRITICAL: Cleanup if anything fails after Auth account created
+      if (user) {
+        try {
+          await deleteUser(user);
+          console.log("Cleaned up stalled Safari Auth account");
+        } catch (deleteError) {
+          console.error("Failed to cleanup stalled account:", deleteError);
+        }
+      }
+      
       toast.error(error.message || "Failed to finalize registration", { id: toastId });
     }
   };

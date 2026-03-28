@@ -242,14 +242,14 @@ const FaceScanner = ({ onCapture, mode = 'register' }) => {
     ctx.scale(-1, 1);
     ctx.drawImage(videoRef.current, 0, 0);
     
-    const imageBlob = canvas.toDataURL('image/jpeg', 0.8);
-
-    if (onCapture) {
-      onCapture({
-        descriptor: Array.from(detection.descriptor),
-        imageBlob: imageBlob
-      });
-    }
+    canvas.toBlob((blob) => {
+      if (onCapture && isMounted.current) {
+        onCapture({
+          descriptor: Array.from(detection.descriptor),
+          imageBlob: blob
+        });
+      }
+    }, 'image/jpeg', 0.8);
   };
 
   return (
