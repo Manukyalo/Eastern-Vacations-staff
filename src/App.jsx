@@ -83,12 +83,12 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
         <Route path="/driver/trips" element={
-          <ProtectedRoute allowedRoles={['driver', 'tour_guide']}>
+          <ProtectedRoute allowedRoles={['driver', 'tour_guide', 'porter']}>
             <DriverTrips />
           </ProtectedRoute>
         } />
         <Route path="/driver/trip/:id" element={
-          <ProtectedRoute allowedRoles={['driver', 'tour_guide']}>
+          <ProtectedRoute allowedRoles={['driver', 'tour_guide', 'porter']}>
             <DriverTripDetail />
           </ProtectedRoute>
         } />

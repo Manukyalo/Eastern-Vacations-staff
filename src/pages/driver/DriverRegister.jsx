@@ -15,7 +15,9 @@ const DriverRegister = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    role: 'driver' // Default
+    role: 'driver', // Default
+    porterName: '',
+    porterTrips: ''
   });
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -195,6 +197,35 @@ const DriverRegister = () => {
                 className="w-full bg-surface border border-border rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all font-bold uppercase tracking-widest text-[10px]"
               />
             </div>
+
+            {formData.role === 'driver' && (
+              <div className="pt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                <div className="h-px bg-border w-full opacity-50" />
+                <p className="text-[8px] text-accent-gold font-black uppercase tracking-[0.3em] mb-2">Ground Ops Pairing (Optional)</p>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-gold/40" size={18} />
+                  <input
+                    type="text"
+                    name="porterName"
+                    placeholder="RECURRING PORTER NAME"
+                    value={formData.porterName}
+                    onChange={handleInputChange}
+                    className="w-full bg-surface/50 border border-border/50 rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all font-bold uppercase tracking-widest text-[9px]"
+                  />
+                </div>
+                <div className="relative">
+                  <Zap className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-gold/40" size={18} />
+                  <input
+                    type="number"
+                    name="porterTrips"
+                    placeholder="ESTIMATED TOTAL TRIPS TOGETHER"
+                    value={formData.porterTrips}
+                    onChange={handleInputChange}
+                    className="w-full bg-surface/50 border border-border/50 rounded-xl py-4 pl-12 pr-4 text-white focus:border-accent-gold outline-none transition-all font-bold uppercase tracking-widest text-[9px]"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="pt-4 flex gap-4">
                <button

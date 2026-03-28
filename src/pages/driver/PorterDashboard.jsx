@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
   History, 
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 const PorterDashboard = () => {
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -149,8 +151,11 @@ const PorterDashboard = () => {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-accent-gold/5 border border-accent-gold/10 p-6 rounded-[2rem] flex items-center justify-between group">
-         <div className="flex items-center gap-4">
+      <div 
+        onClick={() => navigate('/driver/trips')}
+        className="bg-accent-gold/5 border border-accent-gold/10 p-6 rounded-[2rem] flex items-center justify-between group active:scale-95 transition-all cursor-pointer"
+      >
+         <div className="flex items-center gap-4 text-left">
             <div className="w-10 h-10 rounded-xl bg-accent-gold/20 flex items-center justify-center text-accent-gold">
                <History size={20} />
             </div>

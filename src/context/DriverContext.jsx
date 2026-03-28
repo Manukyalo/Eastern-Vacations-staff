@@ -16,10 +16,11 @@ export const DriverProvider = ({ children }) => {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Listen for assigned bookings
+    // Listen for assigned bookings based on role
+    const field = role === 'porter' ? 'porterId' : 'driverId';
     const bookingsQuery = query(
       collection(db, 'bookings'),
-      where('driverId', '==', currentUser.uid),
+      where(field, '==', currentUser.uid),
       orderBy('date', 'desc')
     );
 

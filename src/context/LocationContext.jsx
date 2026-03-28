@@ -10,12 +10,12 @@ export const LocationProvider = ({ children }) => {
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
-    // track for both roles if approved
-    const isDriver = role === 'safari_driver' || role === 'driver';
-    if (isDriver && isApproved && currentUser) {
+    // track for all approved personnel roles
+    const shouldTrack = ['safari_driver', 'driver', 'porter', 'tour_guide'].includes(role);
+    if (shouldTrack && isApproved && currentUser) {
       LocationEngine.start(currentUser.uid, 'active', async (update) => {
         setCurrentLocation(update);
-        setIsTracking(true); // Call inside callback
+        setIsTracking(true);
       });
       return () => LocationEngine.stop();
     }

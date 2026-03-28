@@ -36,11 +36,14 @@ const LiveMap = () => {
   useEffect(() => {
     if (map.current) return;
 
+    const COORD_MOMBASA = [39.6646, -4.0435];
+    const isCityPersonnel = ['porter', 'tour_guide', 'driver'].includes(useLocation().role);
+    
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-      center: [36.8219, -1.2921], // Nairobi default
-      zoom: zoom,
+      center: isCityPersonnel ? COORD_MOMBASA : [36.8219, -1.2921], // Center on coast if city-based
+      zoom: isCityPersonnel ? 11 : zoom,
       pitch: 45,
     });
 
@@ -174,7 +177,14 @@ const LiveMap = () => {
          <div className="flex bg-surface/80 backdrop-blur-xl border border-white/10 p-1.5 rounded-[1.5rem] shadow-2xl gap-1">
             <button onClick={() => setShowParks(!showParks)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${showParks ? 'bg-accent-green text-primary-dark' : 'text-text-muted'}`}>Parks</button>
             <button onClick={() => setShowLodges(!showLodges)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${showLodges ? 'bg-accent-gold text-primary-dark' : 'text-text-muted'}`}>Lodges</button>
-            <button onClick={() => setShowGates(!showGates)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${showGates ? 'bg-success text-primary-dark' : 'text-text-muted'}`}>Gates</button>
+            <button 
+              onClick={() => {
+                if (map.current) map.current.flyTo({ center: [39.6646, -4.0435], zoom: 11, essential: true });
+              }}
+              className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight bg-white/5 text-accent-gold border border-accent-gold/20"
+            >
+              Coast Unit
+            </button>
          </div>
       </div>
 
