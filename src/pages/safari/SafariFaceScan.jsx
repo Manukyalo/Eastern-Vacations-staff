@@ -1,10 +1,9 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FaceScanner from '../../components/face/FaceScanner';
-import { auth, db, storage } from '../../firebase';
+import { auth, db } from '../../firebase';
 import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { doc, setDoc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
 
 const SafariFaceScan = () => {
@@ -26,11 +25,6 @@ const SafariFaceScan = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       user = userCredential.user;
 
-      // Step 5: Upload face image to Firebase Storage
-      const storageRef = ref(storage, `driverFaces/${user.uid}/face.jpg`);
-      await uploadBytes(storageRef, imageBlob);
-      const faceImageUrl = await getDownloadURL(storageRef);
-
       // Step 6a: Link to Admin-created Personnel record (Firestore)
       if (formData.driverId) {
         await updateDoc(doc(db, 'drivers', formData.driverId), {
@@ -41,13 +35,13 @@ const SafariFaceScan = () => {
         });
       }
 
-      // Step 6b: Create fast-lookup auth record (Firestore)
+      // Step 6b: Create fast-lookup auth record (Firestore with Base64 Image)
       await setDoc(doc(db, 'driverAuth', user.uid), {
         email: user.email,
         faceDescriptor: descriptor,
-        faceImageUrl: faceImageUrl,
+        faceImageUrl: imageBlob, // Base64 Data URL (free on Spark Plan)
         role: 'safari_driver',
-        approved: false, // Default to false until admin confirms
+        approved: false,
         registeredAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
         driverDocId: formData.driverId,
@@ -66,18 +60,16 @@ const SafariFaceScan = () => {
       });
 
       toast.success("Registration successful!", { id: toastId });
-      // Step 8: Navigate to pending approval page
       navigate('/safari/pending');
     } catch (error) {
       console.error("Registration error:", error);
       
-      // CRITICAL: Cleanup if anything fails after Auth account created
       if (user) {
         try {
           await deleteUser(user);
-          console.log("Cleaned up stalled Safari Auth account");
+          console.log("Cleaned up failed Safari Auth account");
         } catch (deleteError) {
-          console.error("Failed to cleanup stalled account:", deleteError);
+          console.error("Failed to delete user on rollback:", deleteError);
         }
       }
       

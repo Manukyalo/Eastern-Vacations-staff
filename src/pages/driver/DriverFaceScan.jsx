@@ -1,10 +1,9 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FaceScanner from '../../components/face/FaceScanner';
-import { auth, db, storage } from '../../firebase';
+import { auth, db } from '../../firebase';
 import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { doc, setDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
 
 const DriverFaceScan = () => {
@@ -26,18 +25,11 @@ const DriverFaceScan = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       user = userCredential.user;
 
-      // Step 5: Upload face image to Firebase Storage
-      // NOW user is authenticated so Storage rules allow the upload
-      const storageRef = ref(storage, `driverFaces/${user.uid}/face.jpg`);
-      await uploadBytes(storageRef, imageBlob);
-      const faceImageUrl = await getDownloadURL(storageRef);
-
-      // Step 6: Write to Firestore driverAuth collection
-      // NOW user is authenticated so Firestore rules allow the write
+      // Step 6: Write to Firestore driverAuth collection (Now includes Base64 image)
       await setDoc(doc(db, 'driverAuth', user.uid), {
         email: user.email,
         faceDescriptor: descriptor,
-        faceImageUrl: faceImageUrl,
+        faceImageUrl: imageBlob, // Base64 Data URL (free on Spark Plan)
         role: 'driver',
         approved: false,
         registeredAt: serverTimestamp(),
@@ -58,18 +50,16 @@ const DriverFaceScan = () => {
       });
 
       toast.success("Registration submitted!", { id: toastId });
-      // Step 8: Navigate to pending approval page
       navigate('/driver/pending');
     } catch (error) {
       console.error("Registration error:", error);
       
-      // CRITICAL: Cleanup if anything fails after Auth account created
       if (user) {
         try {
           await deleteUser(user);
-          console.log("Cleaned up stalled Auth account");
+          console.log("Cleaned up failed Auth account");
         } catch (deleteError) {
-          console.error("Failed to cleanup stalled account:", deleteError);
+          console.error("Failed to delete user on rollback:", deleteError);
         }
       }
       
