@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -64,8 +64,18 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
+      // 1. Explicitly set offline in Firestore before signing out
+      if (currentUser) {
+        await setDoc(doc(db, 'driverLocations', currentUser.uid), {
+          isOnline: false,
+          lastUpdated: serverTimestamp()
+        }, { merge: true });
+      }
+
+      // 2. Clear Auth State
       await signOut(auth);
-      // Explicit state clearing to prevent auto-login flickering
+      
+      // 3. Clear Local State
       setDriverProfile(null);
       setDriverAuth(null);
       setRole(null);

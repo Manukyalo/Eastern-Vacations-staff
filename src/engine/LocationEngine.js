@@ -39,8 +39,8 @@ class LocationEngine {
       (error) => console.error('LocationEngine Error:', error),
       {
         enableHighAccuracy: true,
-        maximumAge: 10000,
-        timeout: 5000
+        maximumAge: 0,
+        timeout: 10000
       }
     );
   }

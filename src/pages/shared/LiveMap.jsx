@@ -17,7 +17,7 @@ const LiveMap = () => {
   const lodgeMarkers = useRef({});
   const gateMarkers = useRef({});
   
-  const { currentLocation } = useLocation();
+  const { currentLocation, role } = useLocation();
   const [zoom] = useState(12.5);
   
   // Layer Toggles
@@ -37,7 +37,7 @@ const LiveMap = () => {
     if (map.current) return;
 
     const COORD_MOMBASA = [39.6646, -4.0435];
-    const isCityPersonnel = ['porter', 'tour_guide', 'driver'].includes(useLocation().role);
+    const isCityPersonnel = ['porter', 'tour_guide', 'driver'].includes(role);
     
     map.current = new maplibregl.Map({
       container: mapContainer.current,
