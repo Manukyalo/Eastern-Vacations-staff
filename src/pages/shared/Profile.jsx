@@ -45,12 +45,12 @@ const Profile = () => {
       // 1. Stop Tracking
       LocationEngine.stop();
       
-      // 2. Clear Online Status
+      // 2. Clear Online Status (Don't await to prevent hanging if offline)
       if (currentUser?.uid) {
-        await setDoc(doc(db, 'driverLocations', currentUser.uid), {
+        setDoc(doc(db, 'driverLocations', currentUser.uid), {
           isOnline: false,
           lastSeen: serverTimestamp()
-        }, { merge: true });
+        }, { merge: true }).catch(console.error);
       }
 
       // 3. Sign Out
