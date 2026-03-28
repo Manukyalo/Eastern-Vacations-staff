@@ -35,16 +35,12 @@ const SafariRegister = () => {
       const q = query(driversRef, where('email', '==', cleanEmail));
       const querySnapshot = await getDocs(q);
       
-      if (querySnapshot.empty) {
-        setIsVerifying(false);
-        return toast.error("Expedition record not found. Contact safari headquarters.");
-      }
-
-      const driverDoc = querySnapshot.docs[0];
+      const driverDoc = querySnapshot.empty ? null : querySnapshot.docs[0];
       setFormData(prev => ({ 
         ...prev, 
-        driverId: driverDoc.id,
-        fullName: driverDoc.data().name || prev.fullName
+        driverId: driverDoc?.id || null,
+        fullName: driverDoc?.data()?.name || prev.fullName,
+        isNewDriver: querySnapshot.empty
       }));
       setStep(2);
     } catch (error) {

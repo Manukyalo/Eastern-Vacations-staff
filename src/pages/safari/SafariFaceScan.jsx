@@ -26,33 +26,30 @@ const SafariFaceScan = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, formData.password);
       user = userCredential.user;
 
-      // Step 6a: Link to Admin-created Personnel record (Firestore)
-      if (formData.driverId) {
-        await updateDoc(doc(db, 'drivers', formData.driverId), {
-          uid: user.uid,
-          status: 'Active',
-          faceDescriptor: descriptor,
-          registeredAt: serverTimestamp()
-        });
-      }
-
-      // Step 6b: Create fast-lookup auth record (Firestore with Base64 Image)
-      await setDoc(doc(db, 'driverAuth', user.uid), {
-        email: user.email,
+      // Step 6: Create/Link Driver Records
+      const registrationPayload = {
+        uid: user.uid,
+        name: formData.fullName,
+        email: cleanEmail,
+        phone: formData.phone || '',
+        status: 'Pending',
         faceDescriptor: descriptor,
         faceImageUrl: imageBlob, // Base64 Data URL (free on Spark Plan)
         role: 'safari_driver',
         approved: false,
         registeredAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
-        driverDocId: formData.driverId,
         loginAttempts: 0,
         lockedUntil: null,
-        
-        // Personal details for Admin visibility
-        name: formData.fullName,
-        phone: formData.phone
-      });
+        type: 'Safari Guide'
+      };
+
+      // 6a. Update primary personnel record (if exists) or create new one using UID as ID
+      const driverRef = formData.driverId ? doc(db, 'drivers', formData.driverId) : doc(db, 'drivers', user.uid);
+      await setDoc(driverRef, registrationPayload, { merge: true });
+
+      // 6b. Create request in approval queue for headquarters
+      await setDoc(doc(db, 'driverAuth', user.uid), registrationPayload);
 
       // Step 7: Write to notifications collection
       await addDoc(collection(db, 'notifications'), {
