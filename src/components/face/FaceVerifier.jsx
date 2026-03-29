@@ -29,14 +29,14 @@ export default function FaceVerifier({ storedDescriptor, onSuccess, onFail }) {
     }
   }, [])
 
-  const stopCamera = () => {
+  function stopCamera() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop())
       streamRef.current = null
     }
   }
 
-  const init = async () => {
+  async function init() {
     try {
       await FaceEngine.loadModels()
       
@@ -71,7 +71,7 @@ export default function FaceVerifier({ storedDescriptor, onSuccess, onFail }) {
     }
   }
 
-  const startVerificationLoop = async () => {
+  async function startVerificationLoop() {
     if (!isMounted.current) return
     
     setState(STATES.VERIFYING)
