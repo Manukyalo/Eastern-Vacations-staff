@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { User, Mail, Phone, Lock, ArrowRight, ShieldCheck, Car, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Phone, Lock, ArrowRight, ShieldCheck, Car, Eye, EyeOff, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const DriverRegister = () => {
