@@ -12,26 +12,19 @@ export const AuthProvider = ({ children }) => {
   const [driverAuth, setDriverAuth] = useState(null);
   const [role, setRole] = useState(null);
   const [isApproved, setIsApproved] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // authChecked: set true after the very FIRST onAuthStateChanged fires — used solely for the cold-start splash guard
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    console.log('AuthContext: Initialization started');
-    // Safety timeout to prevent permanent black screen if Firebase hangs
+    // Safety timeout — if Firebase hangs > 4s, unmask the app anyway
     const safetyTimer = setTimeout(() => {
-      if (isLoading) {
-        console.warn('AuthContext: Loading timed out. Forcing UI mount.');
-        setIsLoading(false);
-      }
-    }, 3000);
+      setAuthChecked(true);
+    }, 4000);
 
-    return () => clearTimeout(safetyTimer);
-  }, [isLoading]);
-
-  useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      console.log('AuthContext: onAuthStateChanged fired', user?.uid);
+      clearTimeout(safetyTimer);
       setCurrentUser(user);
-      
+
       if (user) {
         const profileRef = doc(db, 'drivers', user.uid);
         const authRef = doc(db, 'driverAuth', user.uid);
@@ -47,24 +40,27 @@ export const AuthProvider = ({ children }) => {
             setRole(data.role);
             setIsApproved(data.approved);
           }
-          setIsLoading(false);
+          // Mark auth resolved after first Firestore response (hit or miss)
+          setAuthChecked(true);
         });
       } else {
+        // Logged out — clear all profile state immediately
         setDriverProfile(null);
         setDriverAuth(null);
         setRole(null);
         setIsApproved(false);
-        setIsLoading(false);
+        setAuthChecked(true);
       }
     });
 
-    return unsubscribeAuth;
+    return () => {
+      unsubscribeAuth();
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
   const logout = async () => {
-    setIsLoading(true);
     try {
-      // 1. Explicitly set offline in Firestore before signing out
       if (currentUser) {
         try {
           await Promise.race([
@@ -79,10 +75,8 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // 2. Clear Auth State
       await signOut(auth);
-      
-      // 3. Clear Local State
+
       setDriverProfile(null);
       setDriverAuth(null);
       setRole(null);
@@ -90,8 +84,6 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(null);
     } catch (error) {
       console.error('Logout failed', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -101,13 +93,22 @@ export const AuthProvider = ({ children }) => {
     driverAuth,
     role,
     isApproved,
-    isLoading,
+    isLoading: !authChecked,
     logout
   };
 
+  // Only block the UI for the very first cold-start auth resolution
+  if (!authChecked) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-primary-dark">
+        <div className="w-8 h-8 border-2 border-accent-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={value}>
-      {!isLoading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
