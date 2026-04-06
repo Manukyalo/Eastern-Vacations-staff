@@ -138,9 +138,9 @@ class FaceEngine {
         const confidence = Math.max(0, 
           Math.round((1 - distance) * 100))
         
-        if (distance < 0.5) {
+        if (distance < 0.6) {
           return { match: true, confidence, distance }
-        } else if (distance < 0.6) {
+        } else if (distance < 0.7) {
           // Uncertain — try again
           await new Promise(r => setTimeout(r, 500))
           continue
