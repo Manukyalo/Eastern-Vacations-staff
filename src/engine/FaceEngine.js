@@ -12,7 +12,7 @@ class FaceEngine {
     if (this.isLoading) return false
     
     this.isLoading = true
-    const CDN = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'
+    const CDN = '/models'
     
     try {
       onProgress?.('Loading face detector...')
@@ -138,9 +138,11 @@ class FaceEngine {
         const confidence = Math.max(0, 
           Math.round((1 - distance) * 100))
         
-        if (distance < 0.6) {
+        console.log(`[FaceEngine] Distance: ${distance.toFixed(4)}, Confidence: ${confidence}%, Match: ${distance < 0.65}`);
+        
+        if (distance < 0.65) {
           return { match: true, confidence, distance }
-        } else if (distance < 0.7) {
+        } else if (distance < 0.75) {
           // Uncertain — try again
           await new Promise(r => setTimeout(r, 500))
           continue
