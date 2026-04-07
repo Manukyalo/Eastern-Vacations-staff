@@ -71,7 +71,7 @@ export default defineConfig({
           },
           {
             urlPattern: /\/models\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'face-api-models',
               expiration: {
