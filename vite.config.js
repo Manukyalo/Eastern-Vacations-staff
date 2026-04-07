@@ -70,7 +70,7 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /\/models\/.*\.(json|bin)$/i,
+            urlPattern: /\/models\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'face-api-models',
