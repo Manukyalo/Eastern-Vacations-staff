@@ -70,12 +70,12 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /\/models\/.*/i,
+            urlPattern: /\/models\/.*\.(bin|json)$/i,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'face-api-models',
+              cacheName: 'face-api-models-v2',
               expiration: {
-                maxEntries: 20
+                maxEntries: 30
               }
             }
           }
