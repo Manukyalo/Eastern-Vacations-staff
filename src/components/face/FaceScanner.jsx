@@ -52,7 +52,7 @@ export default function FaceScanner({ onCapture, onError }) {
     } catch (err) {
       if (isMounted.current) {
         setState(STATES.ERROR)
-        setErrorMsg('Face ID unavailable. Check connection.')
+        setErrorMsg(err.message || 'Face ID unavailable. Check connection.')
       }
       return
     }

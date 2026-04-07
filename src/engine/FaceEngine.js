@@ -12,28 +12,31 @@ class FaceEngine {
     if (this.isLoading) return false
     
     this.isLoading = true
-    const CDN = '/models'
+    // Use absolute path from origin to ensure reliability across routes/devices
+    const CDN = window.location.origin + '/models'
     
     try {
+      console.log('[FaceEngine] Initializing models from:', CDN)
+      
       onProgress?.('Loading face detector...')
-      await faceapi.nets.tinyFaceDetector
-        .loadFromUri(CDN)
+      await faceapi.nets.tinyFaceDetector.loadFromUri(CDN)
       
       onProgress?.('Loading landmark model...')
-      await faceapi.nets.faceLandmark68Net
-        .loadFromUri(CDN)
+      await faceapi.nets.faceLandmark68Net.loadFromUri(CDN)
       
       onProgress?.('Loading recognition model...')
-      await faceapi.nets.faceRecognitionNet
-        .loadFromUri(CDN)
+      await faceapi.nets.faceRecognitionNet.loadFromUri(CDN)
       
+      console.log('[FaceEngine] All models loaded successfully')
       this.isLoaded = true
       this.isLoading = false
       onProgress?.('Ready')
       return true
     } catch (err) {
       this.isLoading = false
-      throw new Error('Model load failed: ' + err.message)
+      console.error('[FaceEngine] Critical error during model load:', err)
+      // Provide a more descriptive error for the UI
+      throw new Error(`Models failed to load. Check your internet connection. (${err.message})`)
     }
   }
 
