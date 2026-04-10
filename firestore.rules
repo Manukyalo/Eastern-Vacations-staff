@@ -180,6 +180,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --- 📡 NETWORK MONITORING ---
+
+    match /driverNetwork/{driverId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isOwner(driverId);
+    }
+
     // --- 🔒 DEFAULT DENY ---
     match /{document=**} {
       allow read, write: if isAdmin();

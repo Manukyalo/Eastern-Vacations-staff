@@ -1,0 +1,27 @@
+SETUP INSTRUCTIONS FOR STAFF DEVICES:
+======================================
+
+1. Install Node.js from nodejs.org (LTS version)
+
+2. Copy the network-agent folder to the device
+
+3. Open terminal/command prompt in the network-agent folder
+
+4. Run: npm install
+
+5. Edit device-config.json and set the driverId to the 
+   driver's Firebase UID (get this from Firebase Console → Auth)
+
+6. Copy serviceAccountKey.json into the network-agent folder
+   (Download from Firebase Console → Project Settings → Service Accounts)
+
+7. Run: npm start
+
+8. The agent will now run and push network info every 30 seconds
+
+FOR AUTO-START ON WINDOWS:
+- Create a shortcut to start.bat in the Windows Startup folder
+- Or run: npm install -g pm2 && pm2 start agent.js && pm2 startup
+
+FOR AUTO-START ON MAC:
+- Run: npm install -g pm2 && pm2 start agent.js && pm2 startup

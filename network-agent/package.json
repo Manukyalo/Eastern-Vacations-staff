@@ -1,0 +1,16 @@
+{
+  "name": "ev-network-agent",
+  "version": "1.0.0",
+  "description": "Eastern Vacations Network Monitor Agent",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "install-service": "node install-service.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "wifi-name": "^2.0.0",
+    "node-schedule": "^2.1.1",
+    "systeminformation": "^5.22.0"
+  }
+}

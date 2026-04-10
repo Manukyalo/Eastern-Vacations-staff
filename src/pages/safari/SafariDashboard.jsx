@@ -9,12 +9,13 @@ import {
 } from 'lucide-react';
 import StatusBadge from '../../components/ui/StatusBadge';
 import SOSButton from '../../components/ui/SOSButton';
+import { NetworkStatusBadge } from '../../components/NetworkStatusBadge';
 import { format, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 const SafariDashboard = () => {
   const navigate = useNavigate();
-  const { driverProfile } = useAuth();
+  const { driverProfile, currentUser } = useAuth();
   const { activeBookings } = useDriver();
   const { currentLocation, isTracking } = useLocation();
 
@@ -80,14 +81,17 @@ const SafariDashboard = () => {
               <p className="font-mono text-base text-white font-bold">{currentLocation?.longitude?.toFixed(4) || '36.8219'}</p>
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-3">
-            <div className="px-3 py-1 bg-accent-green/10 border border-accent-green/20 rounded-lg text-accent-green text-[9px] font-black uppercase">
-              Field Unit Active
-            </div>
-            <div className="px-3 py-1 bg-white/5 rounded-lg text-text-muted text-[9px] font-bold uppercase">
-              Battery: {currentLocation?.batteryLevel || 100}%
-            </div>
-          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+             <div className="px-3 py-1 bg-accent-green/10 border border-accent-green/20 rounded-lg text-accent-green text-[9px] font-black uppercase">
+               Field Unit Active
+             </div>
+             <div className="px-3 py-1 bg-white/5 rounded-lg text-text-muted text-[9px] font-bold uppercase">
+               Battery: {currentLocation?.batteryLevel || 100}%
+             </div>
+             {currentUser?.uid && (
+               <NetworkStatusBadge driverId={currentUser.uid} />
+             )}
+           </div>
         </div>
       </div>
 

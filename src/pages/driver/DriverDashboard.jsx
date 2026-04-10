@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useDriver } from '../../context/DriverContext';
 import { Bell, MapPin, Calendar, Clock, ChevronRight, User, Compass } from 'lucide-react';
 import StatusBadge from '../../components/ui/StatusBadge';
+import { NetworkStatusBadge } from '../../components/NetworkStatusBadge';
 import { useLocation } from '../../context/LocationContext';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, updateDoc, doc, increment, serverTimestamp } from 'firebase/firestore';
@@ -105,6 +106,11 @@ const DriverDashboard = () => {
                {isTracking ? 'Live Telemetry Active' : 'Signal Lost - Reconnecting'}
              </p>
            </div>
+           {currentUser?.uid && (
+             <div className="mt-3">
+               <NetworkStatusBadge driverId={currentUser.uid} />
+             </div>
+           )}
          </div>
       </div>
 
