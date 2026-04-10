@@ -13,9 +13,9 @@ async function getAdminFCMTokens(): Promise<string[]> {
       .get();
     
     const tokens: string[] = [];
-    snap.docs.forEach(doc => {
+    snap.docs.forEach((doc: admin.firestore.QueryDocumentSnapshot) => {
       const data = doc.data();
-      if (data.fcmToken) tokens.push(data.fcmToken);
+      if (data.fcmToken) tokens.push(data.fcmToken as string);
     });
     return tokens;
   } catch (e) {
@@ -50,7 +50,10 @@ async function getDriverName(driverId: string): Promise<string> {
  */
 export const networkHealthMonitor = functions.firestore
   .document('driverNetwork/{driverId}')
-  .onWrite(async (change, context) => {
+  .onWrite(async (
+    change: functions.Change<functions.firestore.DocumentSnapshot>,
+    context: functions.EventContext
+  ) => {
     const driverId = context.params.driverId;
     
     const before = change.before.exists ? change.before.data() : null;
