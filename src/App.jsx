@@ -47,6 +47,12 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
   if (allowedRoles && !rolesArray.includes(role)) return <Navigate to="/" />;
   
+  // If approved and on a pending page, immediately redirect to appropriate dashboard
+  if (isApproved && window.location.pathname.includes('pending')) {
+    const dashboardPath = role === 'safari_driver' ? '/safari/dashboard' : (role === 'porter' ? '/porter/dashboard' : '/driver/dashboard');
+    return <Navigate to={dashboardPath} />;
+  }
+
   if (!isApproved && window.location.pathname.indexOf('pending') === -1) {
     const redirectPath = role === 'safari_driver' ? '/safari/pending' : '/driver/pending';
     return <Navigate to={redirectPath} />;

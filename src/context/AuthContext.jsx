@@ -21,26 +21,45 @@ export const AuthProvider = ({ children }) => {
       setAuthChecked(true);
     }, 4000);
 
+    let unsubscribeAuthSnap = null;
+    let unsubscribeProfile = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       clearTimeout(safetyTimer);
       setCurrentUser(user);
 
+      // Clean up previous listeners if any
+      if (unsubscribeAuthSnap) {
+        unsubscribeAuthSnap();
+        unsubscribeAuthSnap = null;
+      }
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+
       if (user) {
-        const profileRef = doc(db, 'drivers', user.uid);
         const authRef = doc(db, 'driverAuth', user.uid);
 
-        onSnapshot(profileRef, (docSnap) => {
-          if (docSnap.exists()) setDriverProfile(docSnap.data());
-        });
-
-        onSnapshot(authRef, (docSnap) => {
+        unsubscribeAuthSnap = onSnapshot(authRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setDriverAuth(data);
             setRole(data.role);
             setIsApproved(data.approved);
+
+            // Dynamically listen to the correct profile collection based on role
+            const profileCol = data.role === 'porter' ? 'porters' : 'drivers';
+            if (unsubscribeProfile) {
+              unsubscribeProfile();
+            }
+            unsubscribeProfile = onSnapshot(doc(db, profileCol, user.uid), (profSnap) => {
+              if (profSnap.exists()) {
+                setDriverProfile(profSnap.data());
+              }
+            });
           }
-          // Mark auth resolved after first Firestore response (hit or miss)
+          // Mark auth resolved after first Firestore response
           setAuthChecked(true);
         });
       } else {
@@ -55,6 +74,8 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       unsubscribeAuth();
+      if (unsubscribeAuthSnap) unsubscribeAuthSnap();
+      if (unsubscribeProfile) unsubscribeProfile();
       clearTimeout(safetyTimer);
     };
   }, []);
