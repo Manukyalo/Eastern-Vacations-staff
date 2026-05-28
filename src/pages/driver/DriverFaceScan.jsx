@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import FaceScanner from '../../components/face/FaceScanner';
 import { auth, db } from '../../firebase';
 import { createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
-import { doc, setDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, writeBatch, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 const DriverFaceScan = () => {
@@ -22,14 +22,15 @@ const DriverFaceScan = () => {
     
     try {
       // Step 4: Create Firebase Auth account FIRST
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const cleanEmail = formData.email.trim().toLowerCase();
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, formData.password);
       user = userCredential.user;
 
       // Step 6: Create Registration Payload
       const registrationPayload = {
         uid: user.uid,
-        email: user.email,
-        personalEmail: user.email,
+        email: cleanEmail,
+        personalEmail: cleanEmail,
         faceDescriptor: descriptor,
         faceImageUrl: imageBlob, // Base64 Data URL (free on Spark Plan)
         role: formData.role || 'driver',
@@ -42,13 +43,85 @@ const DriverFaceScan = () => {
 
         // Personal details for Admin visibility
         name: formData.fullName,
-        phone: formData.phone,
-        driverDocId: formData.driverId
+        phone: formData.phone || '',
+        driverDocId: user.uid
       };
 
-      // 6a. Update primary personnel record (if exists) or create new one using UID as ID
-      const driverRef = formData.driverId ? doc(db, 'drivers', formData.driverId) : doc(db, 'drivers', user.uid);
-      await setDoc(driverRef, registrationPayload, { merge: true });
+      // 6a. Perform migration if pre-existing record exists under a different ID
+      if (formData.role === 'porter') {
+        let oldPorterData = {};
+        if (formData.driverId && formData.driverId !== user.uid) {
+          const oldPorterRef = doc(db, 'porters', formData.driverId);
+          const oldPorterSnap = await getDoc(oldPorterRef);
+          if (oldPorterSnap.exists()) {
+            oldPorterData = oldPorterSnap.data();
+          }
+          await deleteDoc(oldPorterRef);
+
+          // Update bookings
+          const bookingsRef = collection(db, 'bookings');
+          const qBookings = query(bookingsRef, where('porterId', '==', formData.driverId));
+          const bookingsSnap = await getDocs(qBookings);
+          const batch = writeBatch(db);
+          bookingsSnap.forEach((docSnap) => {
+            batch.update(docSnap.ref, { porterId: user.uid });
+          });
+          await batch.commit();
+        }
+
+        const porterPayload = {
+          ...oldPorterData,
+          id: user.uid,
+          uid: user.uid,
+          name: formData.fullName,
+          email: cleanEmail,
+          phone: formData.phone || '',
+          status: oldPorterData.status || 'Active',
+          totalTrips: oldPorterData.totalTrips || 0,
+          registeredAt: oldPorterData.registeredAt || serverTimestamp()
+        };
+
+        await setDoc(doc(db, 'porters', user.uid), porterPayload);
+        await setDoc(doc(db, 'drivers', user.uid), registrationPayload);
+      } else {
+        // Driver or Tour Guide
+        let oldDriverData = {};
+        if (formData.driverId && formData.driverId !== user.uid) {
+          const oldDriverRef = doc(db, 'drivers', formData.driverId);
+          const oldDriverSnap = await getDoc(oldDriverRef);
+          if (oldDriverSnap.exists()) {
+            oldDriverData = oldDriverSnap.data();
+          }
+          await deleteDoc(oldDriverRef);
+
+          // Update bookings
+          const bookingsRef = collection(db, 'bookings');
+          const qBookings = query(bookingsRef, where('driverId', '==', formData.driverId));
+          const bookingsSnap = await getDocs(qBookings);
+          const batch = writeBatch(db);
+          bookingsSnap.forEach((docSnap) => {
+            batch.update(docSnap.ref, { driverId: user.uid });
+          });
+          await batch.commit();
+
+          // Update porters
+          const portersRef = collection(db, 'porters');
+          const qPorters = query(portersRef, where('driverId', '==', formData.driverId));
+          const portersSnap = await getDocs(qPorters);
+          const porterBatch = writeBatch(db);
+          portersSnap.forEach((docSnap) => {
+            porterBatch.update(docSnap.ref, { driverId: user.uid });
+          });
+          await porterBatch.commit();
+        }
+
+        const mergedPayload = {
+          ...oldDriverData,
+          ...registrationPayload
+        };
+
+        await setDoc(doc(db, 'drivers', user.uid), mergedPayload);
+      }
 
       // 6b. Create request in approval queue for headquarters
       await setDoc(doc(db, 'driverAuth', user.uid), registrationPayload);

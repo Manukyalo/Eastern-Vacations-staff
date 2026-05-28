@@ -127,6 +127,11 @@ class FaceEngine {
   async verifyFace(videoElement, storedDescriptor) {
     if (!this.isLoaded) throw new Error('Models not loaded')
     
+    if (!storedDescriptor || (Array.isArray(storedDescriptor) && storedDescriptor.length === 0)) {
+      console.error('[FaceEngine] Missing or invalid stored biometric face descriptor');
+      throw new Error('Biometric data not set up on your profile. Please contact admin to reset your Face ID.');
+    }
+    
     // Try up to 5 frames for verification
     for (let attempt = 0; attempt < 5; attempt++) {
       const result = await this.detectFace(videoElement)

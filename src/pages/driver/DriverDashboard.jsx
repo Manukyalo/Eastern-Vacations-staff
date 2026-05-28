@@ -55,12 +55,17 @@ const DriverDashboard = () => {
         commencedAt: serverTimestamp()
       });
 
-      // 2. Update Porter's Trip Count
+      // 2. Update Porter's Trip Count & Live deployment stats
       await updateDoc(doc(db, 'porters', porter.id), {
         totalTrips: increment(1),
         currentDriver: driverProfile?.name || 'Assigned Driver',
         currentTripType: todaysTrip.type || 'Transfer',
-        lastTripAt: serverTimestamp()
+        lastTripAt: serverTimestamp(),
+        assignedDriverId: currentUser.uid,
+        assignedDriverName: driverProfile?.name || 'Assigned Driver',
+        driverPhoto: driverProfile?.faceImageUrl || '',
+        transferType: todaysTrip.type || 'Transfer',
+        deploymentTime: serverTimestamp()
       });
 
       toast.success("Deployment Active", { id: loadingToast });

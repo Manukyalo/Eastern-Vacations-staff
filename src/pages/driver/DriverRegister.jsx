@@ -39,8 +39,8 @@ const DriverRegister = () => {
     setIsVerifying(true);
     try {
       const cleanEmail = formData.email.trim().toLowerCase();
-      const driversRef = collection(db, 'drivers');
-      const q = query(driversRef, where('email', '==', cleanEmail));
+      const colRef = formData.role === 'porter' ? collection(db, 'porters') : collection(db, 'drivers');
+      const q = query(colRef, where('email', '==', cleanEmail));
       const querySnapshot = await getDocs(q);
       
       const driverDoc = querySnapshot.empty ? null : querySnapshot.docs[0];

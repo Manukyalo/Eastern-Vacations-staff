@@ -24,15 +24,45 @@ const PorterDashboard = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Listen to the porter's document in the 'drivers' collection (role: 'porter')
-    const unsub = onSnapshot(doc(db, 'drivers', currentUser.uid), (docSnap) => {
+    let driverData = null;
+    let porterData = null;
+
+    const handleMerge = (dData, pData) => {
+      if (!dData && !pData) return;
+      // Merge porter data on top of driver auth data
+      setProfile({
+        ...dData,
+        ...pData
+      });
+      setLoading(false);
+    };
+
+    // Listen to driver auth document
+    const unsubDriver = onSnapshot(doc(db, 'drivers', currentUser.uid), (docSnap) => {
       if (docSnap.exists()) {
-        setProfile(docSnap.data());
+        driverData = docSnap.data();
       }
+      handleMerge(driverData, porterData);
+    }, (err) => {
+      console.error("Driver doc error:", err);
       setLoading(false);
     });
 
-    return unsub;
+    // Listen to porter ops document
+    const unsubPorter = onSnapshot(doc(db, 'porters', currentUser.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        porterData = docSnap.data();
+      }
+      handleMerge(driverData, porterData);
+    }, (err) => {
+      console.error("Porter doc error:", err);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubDriver();
+      unsubPorter();
+    };
   }, [currentUser]);
 
   if (loading) {
