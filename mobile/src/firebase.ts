@@ -1,4 +1,5 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
+// @ts-ignore - getReactNativePersistence is only available in the React Native entry point of the Firebase SDK
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';

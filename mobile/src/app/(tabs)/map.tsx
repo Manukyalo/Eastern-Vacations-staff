@@ -61,7 +61,7 @@ export default function MapTab() {
     <View style={tw`flex-1 bg-primary-dark`}>
       <MapView
         ref={mapRef}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         provider={Platform.OS === 'android' ? 'google' : PROVIDER_DEFAULT}
         initialRegion={region}
         mapType="satellite"
