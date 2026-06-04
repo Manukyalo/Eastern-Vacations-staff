@@ -6,6 +6,7 @@ import { Mail, Lock, LogIn, ArrowRight, ShieldCheck, UserPlus } from 'lucide-rea
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
+import FaceBiometricVerifier from '@/components/face/FaceBiometricVerifier';
 import tw from '@/utils/tailwind';
 
 export default function DriverLoginScreen() {
@@ -164,23 +165,14 @@ export default function DriverLoginScreen() {
                 <Text style={tw`text-accent-gold text-[10px] font-bold uppercase tracking-widest`}>Verifying Personnel Identity</Text>
               </View>
 
-              {/* Biometrics Scan Simulation Box */}
-              <View style={tw`w-full aspect-square bg-card border border-accent-gold/20 rounded-3xl items-center justify-center p-6 mb-6`}>
-                <View style={tw`w-48 h-48 border border-accent-gold/40 rounded-full items-center justify-center border-dashed`}>
-                  <ShieldCheck size={72} color="#C9A84C" />
-                </View>
-                <Text style={tw`text-text-primary text-sm font-bold text-center uppercase tracking-wider mt-6`}>
-                  Ready for Face ID Verification
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleBiometricSuccess}
-                style={tw`w-full bg-accent-gold py-4 rounded-xl flex-row items-center justify-center gap-2 active:scale-95`}
-              >
-                <Text style={tw`text-primary-dark font-bold uppercase tracking-widest text-sm`}>Verify Biometrics</Text>
-                <ArrowRight size={16} color="#0A0F0D" />
-              </TouchableOpacity>
+              <FaceBiometricVerifier
+                storedDescriptor={storedData?.faceDescriptor}
+                onSuccess={handleBiometricSuccess}
+                onFail={() => {
+                  Alert.alert('Biometric Failed', 'Identity not recognized. Please try again or go back.');
+                  setLoginStep(1);
+                }}
+              />
 
               <TouchableOpacity
                 onPress={() => setLoginStep(1)}
