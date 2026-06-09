@@ -8,19 +8,21 @@ import tw from '@/utils/tailwind';
 
 export default function LandingScreen() {
   const router = useRouter();
-  const { currentUser, role, isLoading } = useAuth();
+  const { currentUser, role, isApproved, isLoading } = useAuth();
 
   useEffect(() => {
     if (!isLoading && currentUser && role) {
-      if (role === 'safari_driver') {
-        router.replace('/safari/dashboard');
-      } else if (role === 'porter') {
-        router.replace('/porter/dashboard');
+      if (isApproved) {
+        router.replace('/dashboard');
       } else {
-        router.replace('/driver/dashboard');
+        if (role === 'safari_driver') {
+          router.replace('/safari/pending');
+        } else {
+          router.replace('/driver/pending');
+        }
       }
     }
-  }, [currentUser, role, isLoading]);
+  }, [currentUser, role, isApproved, isLoading]);
 
   if (isLoading) {
     return (

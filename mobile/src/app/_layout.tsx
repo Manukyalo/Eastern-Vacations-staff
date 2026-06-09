@@ -18,6 +18,10 @@ export default function RootLayout() {
               <Stack.Screen name="driver/login" />
               <Stack.Screen name="driver/register" />
               <Stack.Screen name="driver/pending" />
+              <Stack.Screen name="safari/login" />
+              <Stack.Screen name="safari/register" />
+              <Stack.Screen name="safari/face-scan" />
+              <Stack.Screen name="safari/pending" />
               <Stack.Screen name="(tabs)" />
             </Stack>
           </LocationProvider>

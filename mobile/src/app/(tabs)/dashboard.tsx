@@ -3,6 +3,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import DriverDashboardView from '@/components/dashboard/DriverDashboardView';
 import PorterDashboardView from '@/components/dashboard/PorterDashboardView';
+import SafariDashboardView from '@/components/dashboard/SafariDashboardView';
 import tw from '@/utils/tailwind';
 
 export default function DashboardScreen() {
@@ -18,6 +19,10 @@ export default function DashboardScreen() {
 
   if (role === 'porter') {
     return <PorterDashboardView />;
+  }
+
+  if (role === 'safari_driver') {
+    return <SafariDashboardView />;
   }
 
   return <DriverDashboardView />;

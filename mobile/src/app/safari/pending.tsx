@@ -6,7 +6,7 @@ import { Clock, MessageSquare, ShieldCheck } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import tw from '@/utils/tailwind';
 
-export default function DriverPendingApprovalScreen() {
+export default function SafariPendingApprovalScreen() {
   const { driverProfile, driverAuth, logout } = useAuth();
   const router = useRouter();
 
@@ -16,41 +16,28 @@ export default function DriverPendingApprovalScreen() {
   };
 
   const handleCheckStatus = () => {
-    // Reload can be simulated or we check if auth record updated, which the AuthContext onSnapshot handles automatically.
-    // If approved, AuthContext triggers redirect in index or layouts.
-    // We can also double check by redirecting to root to trigger the auth redirect check.
     router.replace('/');
-  };
-
-  const getRoleText = (role: string) => {
-    switch (role) {
-      case 'porter': return 'Logistics Support';
-      case 'tour_guide': return 'City Tour Guide';
-      case 'safari_driver': return 'Safari Expedition Driver';
-      default: return 'Fleet Driver';
-    }
   };
 
   return (
     <SafeAreaView style={tw`flex-1 bg-primary-dark`}>
       <View style={tw`flex-1 justify-center px-6 items-center`}>
         
-        {/* Animated Hourglass / Clock Simulation */}
+        {/* Hourglass Icon */}
         <View style={tw`relative w-24 h-24 mb-8 justify-center items-center`}>
-          <View style={tw`absolute inset-0 bg-accent-gold/10 rounded-full blur-xl`} />
-          <View style={tw`w-full h-full bg-surface border border-accent-gold/20 rounded-[2rem] justify-center items-center`}>
-            <Clock size={40} color="#C9A84C" />
+          <View style={tw`absolute inset-0 bg-accent-green/10 rounded-full blur-xl`} />
+          <View style={tw`w-full h-full bg-surface border border-accent-green/20 rounded-[2rem] justify-center items-center`}>
+            <Clock size={40} color="#2D6A4F" />
           </View>
         </View>
 
         <Text style={tw`text-3xl font-bold text-white mb-4 uppercase tracking-tight text-center`}>
-          Pending <Text style={tw`text-accent-gold`}>Approval</Text>
+          Pending <Text style={tw`text-accent-green`}>Approval</Text>
         </Text>
 
         <View style={tw`w-full max-w-sm bg-card border border-border p-6 rounded-[2rem] mb-8`}>
           <View style={tw`flex-row items-center justify-between mb-6`}>
             <Text style={tw`text-text-muted text-xs font-bold uppercase tracking-widest`}>Account Status</Text>
-            {/* Status Badge */}
             <View style={tw`px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full`}>
               <Text style={tw`text-amber-500 text-[10px] font-bold uppercase tracking-wider`}>Awaiting Verification</Text>
             </View>
@@ -68,13 +55,13 @@ export default function DriverPendingApprovalScreen() {
               <View>
                 <Text style={tw`text-white font-bold text-base`}>{driverProfile?.name || 'Driver Name'}</Text>
                 <Text style={tw`text-text-muted text-xs uppercase tracking-wider mt-0.5`}>
-                  {driverAuth?.role ? getRoleText(driverAuth.role) : 'Personnel'}
+                  Safari Expedition Driver
                 </Text>
               </View>
             </View>
 
             <Text style={tw`text-text-muted text-sm leading-relaxed mt-2`}>
-              Your {driverAuth?.role || 'personnel'} application is currently being reviewed by our dispatch team. You will be notified once your face ID is verified for duty.
+              Your Safari Expedition application is being reviewed. The operations team will verify your biometric profile for park access logging.
             </Text>
           </View>
         </View>
@@ -92,7 +79,7 @@ export default function DriverPendingApprovalScreen() {
             onPress={handleCheckStatus}
             style={tw`w-full items-center py-2.5`}
           >
-            <Text style={tw`text-accent-gold text-xs font-bold tracking-widest uppercase`}>
+            <Text style={tw`text-accent-green text-xs font-bold tracking-widest uppercase`}>
               Check Status Manually
             </Text>
           </TouchableOpacity>
