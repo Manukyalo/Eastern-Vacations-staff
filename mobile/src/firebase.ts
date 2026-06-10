@@ -1,6 +1,6 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
 // @ts-ignore - getReactNativePersistence is only available in the React Native entry point of the Firebase SDK
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, browserLocalPersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -18,9 +18,11 @@ const firebaseConfig = {
 // Initialize Firebase App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Auth with AsyncStorage Persistence for mobile
+// Initialize Auth with AsyncStorage Persistence for mobile, or browserLocalPersistence for web
 const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
+  persistence: typeof getReactNativePersistence === 'function'
+    ? getReactNativePersistence(AsyncStorage)
+    : browserLocalPersistence,
 });
 
 // Initialize Firestore with standard persistent local cache
