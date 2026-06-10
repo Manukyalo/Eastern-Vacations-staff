@@ -14,7 +14,7 @@
     "android": {
       "package": "com.easternvacations.staff",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0A0F0D",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -36,10 +36,14 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0A0F0D",
           "android": {
             "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
+            "imageWidth": 200
+          },
+          "ios": {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 200
           }
         }
       ],
@@ -68,6 +72,12 @@
         "projectId": "3ee2e9c4-f353-498b-b935-5087f0d3aeee"
       }
     },
-    "owner": "manukyalo"
+    "owner": "manukyalo",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3ee2e9c4-f353-498b-b935-5087f0d3aeee"
+    }
   }
 }
